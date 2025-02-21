@@ -140,3 +140,5 @@ publish/
 *.azurePubxml
 
 /CS2Marketplace/appsettings.json
+*.ps1
+/ProjectExport.txt

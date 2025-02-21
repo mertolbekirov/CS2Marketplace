@@ -1,4 +1,4 @@
-﻿№@namespace CS2Marketplace.Services
+﻿namespace CS2Marketplace.Services
 {
     public class MarketplaceService
     {

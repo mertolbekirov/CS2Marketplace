@@ -139,5 +139,4 @@ publish/
 *.[Pp]ublish.xml
 *.azurePubxml
 
-appsettings.json
 /CS2Marketplace/appsettings.json

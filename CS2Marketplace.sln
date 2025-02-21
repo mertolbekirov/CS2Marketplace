@@ -5,6 +5,8 @@ VisualStudioVersion = 17.10.35013.160
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CS2Marketplace", "CS2Marketplace\CS2Marketplace.csproj", "{DDEF85A4-AFC5-4D08-867D-3BE3EAF542AD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CS2Marketplace.Tests", "CS2Marketplace.Tests\CS2Marketplace.Tests.csproj", "{F5854535-7FE2-4B69-B90C-8D06760666AF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{DDEF85A4-AFC5-4D08-867D-3BE3EAF542AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DDEF85A4-AFC5-4D08-867D-3BE3EAF542AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DDEF85A4-AFC5-4D08-867D-3BE3EAF542AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5854535-7FE2-4B69-B90C-8D06760666AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5854535-7FE2-4B69-B90C-8D06760666AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5854535-7FE2-4B69-B90C-8D06760666AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5854535-7FE2-4B69-B90C-8D06760666AF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

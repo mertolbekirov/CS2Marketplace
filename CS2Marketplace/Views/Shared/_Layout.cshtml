@@ -11,13 +11,14 @@
     <header>
         <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">CS2Marketplace</a>
+                <a class="navbar-brand" asp-controller="Home" asp-action="Index">CS2Marketplace</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
                         aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="mainNav">
                     <ul class="navbar-nav me-auto">
+                        @* Always visible links *@
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
@@ -31,6 +32,15 @@
                         }
                         else
                         {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Marketplace" asp-action="LoadInventory">My Inventory</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Marketplace" asp-action="Index">Marketplace</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Account" asp-action="Profile">Profile</a>
+                            </li>
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Auth" asp-action="SignOut">Sign Out</a>
                             </li>

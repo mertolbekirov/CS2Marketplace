@@ -12,17 +12,19 @@ namespace CS2Marketplace.Controllers
     public class AuthController : Controller
     {
         private readonly SteamAuthService _steamAuthService;
+        private readonly SteamApiService _steamApiService;
         private readonly ApplicationDbContext _dbContext;
         private readonly IConfiguration _configuration;
 
-        public AuthController(SteamAuthService steamAuthService, ApplicationDbContext dbContext, IConfiguration configuration)
+        public AuthController(SteamAuthService steamAuthService, SteamApiService steamApiService, ApplicationDbContext dbContext, IConfiguration configuration)
         {
             _steamAuthService = steamAuthService;
+            _steamApiService = steamApiService;
             _dbContext = dbContext;
             _configuration = configuration;
         }
 
-        // Redirects user to Steam for authentication.
+        // Redirects to Steam for authentication.
         public IActionResult SignIn()
         {
             var callbackUrl = Url.Action("SteamCallback", "Auth", null, Request.Scheme);
@@ -30,7 +32,7 @@ namespace CS2Marketplace.Controllers
             return Redirect(loginUrl);
         }
 
-        // Handles Steam's callback.
+        // Handles the Steam callback.
         public async Task<IActionResult> SteamCallback()
         {
             var steamId = await _steamAuthService.ValidateSteamCallback(Request.Query);
@@ -39,13 +41,13 @@ namespace CS2Marketplace.Controllers
                 return RedirectToAction("LoginFailed");
             }
 
-            // Retrieve your Steam API key from configuration.
+            // Get your Steam API key from configuration.
             var steamApiKey = _configuration.GetValue<string>("Steam:ApiKey");
 
-            // Fetch the Steam profile (username and avatar)
-            var profile = await _steamAuthService.GetUserProfileAsync(steamId, steamApiKey);
+            // Fetch the user profile data from Steam.
+            var profile = await _steamApiService.GetUserProfileAsync(steamId, steamApiKey);
 
-            // Look up or create a user record.
+            // Look up or create the user.
             var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
             if (user == null)
             {
@@ -64,7 +66,6 @@ namespace CS2Marketplace.Controllers
             }
             else
             {
-                // Update existing user profile if necessary.
                 if (profile != null)
                 {
                     user.Username = profile.PersonaName;
@@ -74,7 +75,7 @@ namespace CS2Marketplace.Controllers
             }
             await _dbContext.SaveChangesAsync();
 
-            // Mark user as authenticated by storing SteamId in session.
+            // Store the SteamId in session.
             HttpContext.Session.SetString("SteamId", steamId);
 
             return RedirectToAction("Index", "Home");

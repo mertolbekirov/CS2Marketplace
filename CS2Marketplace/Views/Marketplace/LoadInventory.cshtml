@@ -1,0 +1,73 @@
+﻿@model List<CS2Marketplace.Models.ViewModels.InventoryItem>
+@{
+    ViewData["Title"] = "Your Inventory";
+    var activeListingIds = ViewBag.ActiveListingIds as List<string> ?? new List<string>();
+}
+
+<h2>Your Inventory</h2>
+
+<!-- Force Refresh Button -->
+<a href="@Url.Action("LoadInventory", "Marketplace", new { force = true })" class="btn btn-secondary mb-3">Force Refresh</a>
+
+@if (Model == null)
+{
+    <p>Unable to load inventory. Please try again later.</p>
+}
+else if (!Model.Any())
+{
+    <p>No items found in your inventory.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Float Value</th>
+                <th>Pattern Index</th>
+                <th>List for Sale</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                bool isListed = activeListingIds.Contains(item.AssetId);
+                <tr class="@(isListed ? "table-secondary" : "")">
+                    <td>
+                        @if (!string.IsNullOrEmpty(item.ImageUrl))
+                        {
+                            <img src="@item.ImageUrl" alt="@item.Name" style="width:50px;" />
+                        }
+                    </td>
+                    <td>@item.Name</td>
+                    <td>@(item.FloatValue.HasValue ? item.FloatValue.Value.ToString("0.00") : "N/A")</td>
+                    <td>@(item.PatternIndex.HasValue ? item.PatternIndex.Value.ToString() : "N/A")</td>
+                    <td>
+                        @if (isListed)
+                        {
+                            <span class="text-muted">Already Listed</span>
+                        }
+                        else
+                        {
+                            <form asp-controller="Marketplace" asp-action="CreateListing" method="post">
+                                <input type="hidden" name="assetId" value="@item.AssetId" />
+                                <input type="hidden" name="classId" value="@item.ClassId" />
+                                <input type="hidden" name="instanceId" value="@item.InstanceId" />
+                                <input type="hidden" name="name" value="@item.Name" />
+                                <input type="hidden" name="imageUrl" value="@item.ImageUrl" />
+                                <input type="hidden" name="floatValue" value="@(item.FloatValue.HasValue ? item.FloatValue.Value : 0)" />
+                                <input type="hidden" name="patternIndex" value="@(item.PatternIndex.HasValue ? item.PatternIndex.Value : 0)" />
+                                <div class="form-group">
+                                    <label>Price:</label>
+                                    <input type="number" step="0.01" class="form-control" name="price" required />
+                                </div>
+                                <button type="submit" class="btn btn-primary mt-2">List for Sale</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

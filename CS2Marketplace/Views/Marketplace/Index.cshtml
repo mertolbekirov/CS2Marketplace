@@ -1,4 +1,45 @@
-﻿@page
-@model CS2Marketplace.Views.Marketplace.IndexModel
+﻿@model List<CS2Marketplace.Models.MarketplaceListing>
 @{
+    ViewData["Title"] = "Marketplace Listings";
+}
+
+<h2>Marketplace Listings</h2>
+
+@if (!Model.Any())
+{
+    <p>No listings available at this time.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Seller</th>
+                <th>Price</th>
+                <th>Listed At</th>
+                <th>Float</th>
+                <th>Pattern Index</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var listing in Model)
+            {
+                <tr>
+                    <td>
+                        @if (!string.IsNullOrEmpty(listing.Item.ImageUrl))
+                        {
+                            <img src="@listing.Item.ImageUrl" alt="@listing.Item.Name" style="width:50px;" />
+                        }
+                        @listing.Item.Name
+                    </td>
+                    <td>@listing.Seller.Username</td>
+                    <td>@listing.Price.ToString("C")</td>
+                    <td>@listing.ListedAt.ToString("g")</td>
+                    <td>@(listing.FloatValue.HasValue ? listing.FloatValue.Value.ToString("0.00") : "N/A")</td>
+                    <td>@(listing.PatternIndex.HasValue ? listing.PatternIndex.Value.ToString() : "N/A")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
 }

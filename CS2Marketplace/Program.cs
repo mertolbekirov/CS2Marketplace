@@ -1,6 +1,7 @@
 using CS2Marketplace.Data;
 using CS2Marketplace.Services;
 using Microsoft.EntityFrameworkCore;
+using Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,12 +12,27 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// Register custom SteamAuthService
-builder.Services.AddScoped<SteamAuthService>();
+// Register our custom services
+builder.Services.AddTransient<SteamAuthService>();
+builder.Services.AddTransient<SteamApiService>();
+// Register the GC-based float fetcher (consider it as a singleton if you want to keep its connection alive)
+builder.Services.AddSingleton<SteamFloatFetcher>(sp =>
+{
+    // Supply valid Steam credentials (or read from configuration)
+    string username = builder.Configuration["Steam:Username"];
+    string password = builder.Configuration["Steam:Password"];
+    var fetcher = new SteamFloatFetcher(username, password);
+    // Optionally, you might start the connection here asynchronously (or call it later when needed)
+    Task.Run(async () => await fetcher.ConnectAndLogOnAsync()).Wait();
+    return fetcher;
+});
+builder.Services.AddHttpClient();
 
-// Add controllers with views and enable session
+// Add MemoryCache, MVC controllers, and session support.
+builder.Services.AddMemoryCache();
 builder.Services.AddControllersWithViews();
 builder.Services.AddSession();
+StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 
 var app = builder.Build();
 

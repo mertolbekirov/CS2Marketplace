@@ -15,6 +15,8 @@ namespace CS2Marketplace.Models
         public DateTime CreatedAt { get; set; }
         public DateTime LastLogin { get; set; }
 
+        public string StripeCustomerId { get; set; }
+
         // Navigation properties
         public ICollection<MarketplaceListing> Listings { get; set; }
         public ICollection<Trade> TradesAsBuyer { get; set; }

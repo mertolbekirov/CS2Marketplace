@@ -15,6 +15,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Register our custom services
 builder.Services.AddTransient<SteamAuthService>();
 builder.Services.AddTransient<SteamApiService>();
+builder.Services.AddTransient<PaymentService>();
 // Register the GC-based float fetcher (consider it as a singleton if you want to keep its connection alive)
 builder.Services.AddSingleton<SteamFloatFetcher>(sp =>
 {

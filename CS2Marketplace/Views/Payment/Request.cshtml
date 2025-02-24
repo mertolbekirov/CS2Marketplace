@@ -1,0 +1,26 @@
+﻿@{
+    ViewData["Title"] = "Request Withdrawal";
+}
+
+<h2>Request Withdrawal</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+}
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["Message"]
+    </div>
+}
+
+<form asp-controller="Withdrawal" asp-action="Request" method="post" class="form-inline">
+    <div class="form-group mb-2">
+        <label for="amount" class="mr-2">Withdrawal Amount:</label>
+        <input type="number" step="0.01" name="amount" id="amount" class="form-control" required />
+    </div>
+    <button type="submit" class="btn btn-primary mb-2 ml-2">Withdraw</button>
+</form>

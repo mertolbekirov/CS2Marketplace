@@ -1,6 +1,7 @@
 ﻿@model List<CS2Marketplace.Models.MarketplaceListing>
 @{
     ViewData["Title"] = "Marketplace Listings";
+    var currentUserSteamId = Context.Session.GetString("SteamId");
 }
 
 <h2>Marketplace Listings</h2>
@@ -20,6 +21,7 @@ else
                 <th>Listed At</th>
                 <th>Float</th>
                 <th>Pattern Index</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody>
@@ -38,6 +40,14 @@ else
                     <td>@listing.ListedAt.ToString("g")</td>
                     <td>@(listing.FloatValue.HasValue ? listing.FloatValue.Value.ToString("0.00") : "N/A")</td>
                     <td>@(listing.PatternIndex.HasValue ? listing.PatternIndex.Value.ToString() : "N/A")</td>
+                    <td>
+                        @if (listing.Seller.SteamId != currentUserSteamId)
+                        {
+                            <form asp-action="Purchase" asp-route-listingId="@listing.Id" method="post" style="display: inline;">
+                                <button type="submit" class="btn btn-primary btn-sm">Buy</button>
+                            </form>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>

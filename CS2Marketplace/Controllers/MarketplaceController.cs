@@ -200,5 +200,114 @@ namespace CS2Marketplace.Controllers
                 .ToListAsync();
             return View(listings);
         }
+
+        // POST: /Marketplace/Purchase/{listingId}
+        [HttpPost]
+        public async Task<IActionResult> Purchase(int listingId)
+        {
+            // Check if user is signed in
+            string steamIdStr = HttpContext.Session.GetString("SteamId");
+            if (string.IsNullOrEmpty(steamIdStr))
+                return RedirectToAction("SignIn", "Auth");
+
+            // Get the current user and listing
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamIdStr);
+            var listing = await _dbContext.MarketplaceListings
+                .Include(l => l.Seller)
+                .Include(l => l.Item)
+                .FirstOrDefaultAsync(l => l.Id == listingId);
+        
+            if (user == null || listing == null)
+                return NotFound();
+        
+            // Check if the listing is available
+            if (listing.ListingStatus != ListingStatus.Active)
+            {
+                TempData["Error"] = "This item is no longer available.";
+                return RedirectToAction("Index");
+            }
+        
+            // Check if the user has enough balance
+            if (user.Balance < listing.Price)
+            {
+                TempData["Error"] = "You don't have enough balance to purchase this item.";
+                return RedirectToAction("Index", "Wallet");
+            }
+        
+            // Prevent users from buying their own listings
+            if (listing.SellerId == user.Id)
+            {
+                TempData["Error"] = "You cannot purchase your own listing.";
+                return RedirectToAction("Index");
+            }
+
+            // Begin a database transaction to ensure all operations succeed together
+            using (var dbTransaction = await _dbContext.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    // Deduct the user's balance
+                    user.Balance -= listing.Price;
+                
+                    // Create a wallet transaction to record the payment
+                    var transaction = new WalletTransaction
+                    {
+                        UserId = user.Id,
+                        Amount = -listing.Price,
+                        Type = WalletTransactionType.Withdrawal,
+                        Description = $"Purchase of {listing.Item.Name}",
+                        CreatedAt = DateTime.UtcNow,
+                        Status = WalletTransactionStatus.Completed,
+                        ReferenceId = listing.Id.ToString()
+                    };
+                    _dbContext.WalletTransactions.Add(transaction);
+
+                    // Create a wallet transaction for the seller
+                    var sellerTransaction = new WalletTransaction
+                    {
+                        UserId = listing.SellerId,
+                        Amount = listing.Price,
+                        Type = WalletTransactionType.Deposit,
+                        Description = $"Sale of {listing.Item.Name}",
+                        CreatedAt = DateTime.UtcNow,
+                        Status = WalletTransactionStatus.Pending,
+                        ReferenceId = listing.Id.ToString()
+                    };
+                    _dbContext.WalletTransactions.Add(sellerTransaction);
+                
+                    // Create a new trade
+                    var trade = new Trade
+                    {
+                        SellerId = listing.SellerId,
+                        BuyerId = user.Id,
+                        ListingId = listing.Id,
+                        ItemId = listing.ItemId.ToString(),
+                        ItemName = listing.Item.Name,
+                        ItemWear = listing.FloatValue.HasValue ? listing.FloatValue.Value.ToString("0.######") : "Unknown",
+                        Amount = listing.Price,
+                        Status = TradeStatus.WaitingForSeller,
+                        StatusMessage = "Waiting for seller to confirm",
+                        CreatedAt = DateTime.UtcNow,
+                        IsPaid = true
+                    };
+                    _dbContext.Trades.Add(trade);
+                
+                    // Update the listing status
+                    listing.ListingStatus = ListingStatus.Sold;
+                
+                    await _dbContext.SaveChangesAsync();
+                    await dbTransaction.CommitAsync();
+                
+                    TempData["Success"] = $"You have successfully purchased {listing.Item.Name}! The seller will send a trade offer.";
+                    return RedirectToAction("Details", "Trade", new { id = trade.Id });
+                }
+                catch (Exception ex)
+                {
+                    await dbTransaction.RollbackAsync();
+                    TempData["Error"] = $"An error occurred during purchase: {ex.Message}";
+                    return RedirectToAction("Details", new { id = listingId });
+                }
+            }
+        }
     }
 }

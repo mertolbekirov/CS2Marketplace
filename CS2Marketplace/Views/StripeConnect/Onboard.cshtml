@@ -1,0 +1,37 @@
+@{
+    ViewData["Title"] = "Set Up Stripe Connect";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Set Up Your Stripe Connect Account</h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h4>What is Stripe Connect?</h4>
+                        <p>Stripe Connect allows you to receive payments directly to your bank account when you sell items on our marketplace.</p>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <h4>Required Information</h4>
+                        <p>You'll need the following to complete the setup:</p>
+                        <ul>
+                            <li>Government-issued ID</li>
+                            <li>Bank account information</li>
+                            <li>Personal information (name, address, etc.)</li>
+                        </ul>
+                    </div>
+
+                    <div class="text-center">
+                        <a href="@Url.Action("Onboard", "StripeConnect")" class="btn btn-primary btn-lg">
+                            Start Stripe Connect Setup
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

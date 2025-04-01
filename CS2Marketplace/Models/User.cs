@@ -15,7 +15,12 @@ namespace CS2Marketplace.Models
         public DateTime CreatedAt { get; set; }
         public DateTime LastLogin { get; set; }
 
+        // Stripe fields
         public string StripeCustomerId { get; set; }
+        public string StripeConnectAccountId { get; set; }
+        public bool StripeConnectEnabled { get; set; }
+        public string StripeConnectOnboardingLink { get; set; }
+        public string StripeConnectDashboardLink { get; set; }
 
         // Navigation properties
         public ICollection<MarketplaceListing> Listings { get; set; }

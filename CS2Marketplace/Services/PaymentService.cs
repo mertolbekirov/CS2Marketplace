@@ -14,12 +14,14 @@ namespace CS2Marketplace.Services
     {
         private readonly IConfiguration _configuration;
         private readonly ApplicationDbContext _dbContext;
+        internal readonly bool _isTestMode;
 
         public PaymentService(IConfiguration configuration, ApplicationDbContext dbContext)
         {
             _configuration = configuration;
             _dbContext = dbContext;
             StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
+            _isTestMode = _configuration["Stripe:SecretKey"].StartsWith("sk_test_");
         }
 
         /// <summary>
@@ -36,7 +38,6 @@ namespace CS2Marketplace.Services
             {
                 Email = user.Email,
                 Name = user.Username,
-                // You can add metadata or other details here.
                 Metadata = new Dictionary<string, string>
                 {
                     { "UserId", user.Id.ToString() },
@@ -47,7 +48,6 @@ namespace CS2Marketplace.Services
             var service = new CustomerService();
             Customer customer = await service.CreateAsync(options);
 
-            // Update the user record with the new Stripe customer ID.
             user.StripeCustomerId = customer.Id;
             _dbContext.Users.Update(user);
             await _dbContext.SaveChangesAsync();
@@ -56,14 +56,99 @@ namespace CS2Marketplace.Services
         }
 
         /// <summary>
+        /// Creates a Stripe Connect account for a user and returns the onboarding link.
+        /// </summary>
+        public async Task<string> CreateStripeConnectAccountAsync(User user)
+        {
+            var options = new AccountCreateOptions
+            {
+                Type = "express",
+                Email = user.Email,
+                BusinessProfile = new AccountBusinessProfileOptions
+                {
+                    Name = user.Username,
+                    Mcc = "5815", // Digital goods
+                    ProductDescription = "CS2 Marketplace Seller",
+                    Url = _configuration["ApplicationUrl"] // Add your marketplace URL
+                },
+                Capabilities = new AccountCapabilitiesOptions
+                {
+                    Transfers = new AccountCapabilitiesTransfersOptions { Requested = true },
+                    CardPayments = new AccountCapabilitiesCardPaymentsOptions { Requested = true }
+                },
+                Settings = new AccountSettingsOptions
+                {
+                    Payouts = new AccountSettingsPayoutsOptions
+                    {
+                        Schedule = new AccountSettingsPayoutsScheduleOptions
+                        {
+                            Interval = "daily"
+                        },
+                        DebitNegativeBalances = true
+                    },
+                    CardPayments = new AccountSettingsCardPaymentsOptions
+                    {
+                        DeclineOn = new AccountSettingsCardPaymentsDeclineOnOptions
+                        {
+                            AvsFailure = true,
+                            CvcFailure = true
+                        }
+                    }
+                },
+                Metadata = new Dictionary<string, string>
+                {
+                    { "UserId", user.Id.ToString() },
+                    { "SteamId", user.SteamId },
+                    { "Platform", "CS2Marketplace" }
+                },
+                BusinessType = "individual"
+            };
+
+            try
+            {
+                var service = new AccountService();
+                Account account = await service.CreateAsync(options);
+
+                // Create an account link for onboarding
+                var linkOptions = new AccountLinkCreateOptions
+                {
+                    Account = account.Id,
+                    RefreshUrl = _configuration["Stripe:ConnectOnboardingRefreshUrl"],
+                    ReturnUrl = _configuration["Stripe:ConnectOnboardingReturnUrl"],
+                    Type = "account_onboarding",
+                    Collect = "eventually_due"
+                };
+
+                var linkService = new AccountLinkService();
+                AccountLink link = await linkService.CreateAsync(linkOptions);
+
+                // Update user with Stripe Connect account information
+                user.StripeConnectAccountId = account.Id;
+                user.StripeConnectOnboardingLink = link.Url;
+                user.StripeConnectEnabled = false;
+                _dbContext.Users.Update(user);
+                await _dbContext.SaveChangesAsync();
+
+                return link.Url;
+
+            }
+            catch (Exception ex)
+            {
+                ;
+                throw;
+            }
+
+
+
+
+        }
+
+        /// <summary>
         /// Creates a Stripe Checkout Session for a deposit.
         /// </summary>
-        public async Task<Session> CreateDepositSessionAsync(User user, decimal amount, string currency = "usd")
+        public async Task<Session> CreateDepositSessionAsync(User user, decimal amount, string currency = "eur")
         {
-            // Ensure the user has a Stripe customer record.
             string customerId = await GetOrCreateStripeCustomerAsync(user);
-
-            // Stripe expects the amount in the smallest currency unit (e.g. cents).
             var amountInCents = (long)(amount * 100);
 
             var options = new SessionCreateOptions
@@ -81,7 +166,7 @@ namespace CS2Marketplace.Services
                             ProductData = new SessionLineItemPriceDataProductDataOptions
                             {
                                 Name = "Deposit to CS2Marketplace Account",
-                                Description = $"Deposit of {amount:C} (test mode)"
+                                Description = $"Deposit of {amount:C}"
                             }
                         },
                         Quantity = 1
@@ -98,53 +183,197 @@ namespace CS2Marketplace.Services
         }
 
         /// <summary>
-        /// Confirms a deposit session by retrieving it from Stripe.
-        /// If the payment succeeded, returns the deposited amount (in dollars); otherwise returns null.
+        /// Confirms a deposit session and updates the user's balance.
         /// </summary>
         public async Task<decimal?> ConfirmDepositSessionAsync(string sessionId)
         {
             var service = new SessionService();
             Session session = await service.GetAsync(sessionId);
+            
             if (session.PaymentStatus == "paid")
             {
-                // Amount_total is in cents.
-                return session.AmountTotal / 100m;
+                decimal amount = (decimal)(session.AmountTotal ?? 0) / 100m;
+                
+                // Get the user from the customer ID
+                var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.StripeCustomerId == session.CustomerId);
+                if (user != null)
+                {
+                    user.Balance += amount;
+                    
+                    // Record the transaction
+                    var transaction = new WalletTransaction
+                    {
+                        UserId = user.Id,
+                        TransactionType = TransactionType.Deposit,
+                        Amount = amount,
+                        Timestamp = DateTime.UtcNow,
+                        PaymentId = session.PaymentIntentId
+                    };
+                    
+                    _dbContext.WalletTransactions.Add(transaction);
+                    await _dbContext.SaveChangesAsync();
+                }
+                
+                return amount;
             }
             return null;
         }
 
         /// <summary>
-        /// Processes a withdrawal request by using the Stripe Payout API.
-        /// For a live deployment, this would require that you set up Stripe Connect.
+        /// Processes a withdrawal request using Stripe Connect.
         /// </summary>
-        public async Task<bool> ProcessWithdrawalAsync(User user, decimal amount, string currency = "usd")
+        public async Task<(bool success, string errorMessage)> ProcessWithdrawalAsync(User user, decimal amount, string currency = "eur")
         {
-            // Ensure the user has a Stripe customer record.
-            string customerId = await GetOrCreateStripeCustomerAsync(user);
-
-            // In a real scenario, you might be using Stripe Connect with a connected account.
-            // For simplicity here, we simulate a withdrawal by calling Stripe's Payout API on a test account.
-            var amountInCents = (long)(amount * 100);
-            var options = new PayoutCreateOptions
+            if (!user.StripeConnectEnabled || string.IsNullOrEmpty(user.StripeConnectAccountId))
             {
-                Amount = amountInCents,
-                Currency = currency,
-                StatementDescriptor = "CS2Marketplace Withdrawal"
-            };
+                return (false, "User has not completed Stripe Connect onboarding");
+            }
 
-            var service = new PayoutService();
+            var amountInCents = (long)(amount * 100);
+            
             try
             {
-                // If you are not using Connect, you might not pass a StripeAccount parameter.
-                // For live mode with Connect, pass the connected account ID.
-                Payout payout = await service.CreateAsync(options);
-                return payout.Status == "paid";
+                // Create a Transfer to the connected account
+                var options = new TransferCreateOptions
+                {
+                    Amount = amountInCents,
+                    Currency = currency,
+                    Destination = user.StripeConnectAccountId
+                };
+
+                var service = new TransferService();
+                Transfer transfer = await service.CreateAsync(options);
+                
+                if (transfer == null || string.IsNullOrEmpty(transfer.Id))
+                {
+                    return (false, "Failed to create transfer: No transfer ID received");
+                }
+
+                // Record the transaction
+                var transaction = new WalletTransaction
+                {
+                    UserId = user.Id,
+                    TransactionType = TransactionType.Withdrawal,
+                    Amount = amount,
+                    Timestamp = DateTime.UtcNow,
+                    PaymentId = transfer.Id,
+                    Status = TransactionStatus.Pending
+                };
+                
+                _dbContext.WalletTransactions.Add(transaction);
+                await _dbContext.SaveChangesAsync();
+                
+                return (true, null);
+            }
+            catch (StripeException ex)
+            {
+                // Handle specific Stripe errors
+                string errorMessage = ex.Message;
+                if (ex.StripeError?.Type == "card_error")
+                {
+                    errorMessage = "Card error: " + ex.StripeError.Message;
+                }
+                else if (ex.StripeError?.Type == "invalid_request_error")
+                {
+                    errorMessage = "Invalid request: " + ex.StripeError.Message;
+                }
+                else if (ex.StripeError?.Type == "api_error")
+                {
+                    errorMessage = "Stripe API error: " + ex.StripeError.Message;
+                }
+
+                Console.WriteLine($"Stripe withdrawal error: {errorMessage}");
+                return (false, errorMessage);
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Withdrawal error: " + ex.Message);
-                return false;
+                Console.WriteLine($"Unexpected withdrawal error: {ex.Message}");
+                return (false, "An unexpected error occurred while processing the withdrawal");
             }
+        }
+
+        /// <summary>
+        /// Updates the user's Stripe Connect account status.
+        /// </summary>
+        public async Task UpdateStripeConnectAccountStatusAsync(string accountId)
+        {
+            var service = new AccountService();
+            Account account = await service.GetAsync(accountId);
+            
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.StripeConnectAccountId == accountId);
+            if (user != null)
+            {
+                user.StripeConnectEnabled = account.ChargesEnabled && account.PayoutsEnabled;
+                // Use different dashboard URLs for test and live mode
+                user.StripeConnectDashboardLink = _isTestMode
+                    ? $"https://dashboard.stripe.com/{accountId}/test/dashboard"
+                    : $"https://connect.stripe.com/app/express#acct_{accountId}/overview";
+                _dbContext.Users.Update(user);
+                await _dbContext.SaveChangesAsync();
+            }
+        }
+
+        /// <summary>
+        /// Handles Stripe webhook events for transfer status updates.
+        /// </summary>
+        public async Task HandleTransferWebhookAsync(string eventType, string transferId)
+        {
+            var transaction = await _dbContext.WalletTransactions
+                .FirstOrDefaultAsync(t => t.PaymentId == transferId && t.TransactionType == TransactionType.Withdrawal);
+
+            if (transaction == null)
+            {
+                return;
+            }
+
+            switch (eventType)
+            {
+                case "transfer.paid":
+                    transaction.Status = TransactionStatus.Completed;
+                    break;
+                case "transfer.failed":
+                    transaction.Status = TransactionStatus.Failed;
+                    // If the transfer failed, we should refund the user's balance
+                    var user = await _dbContext.Users.FindAsync(transaction.UserId);
+                    if (user != null)
+                    {
+                        user.Balance += transaction.Amount;
+                    }
+                    break;
+                case "transfer.canceled":
+                    transaction.Status = TransactionStatus.Cancelled;
+                    // If the transfer was cancelled, we should refund the user's balance
+                    user = await _dbContext.Users.FindAsync(transaction.UserId);
+                    if (user != null)
+                    {
+                        user.Balance += transaction.Amount;
+                    }
+                    break;
+            }
+
+            await _dbContext.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Creates a test charge to simulate available balance in test mode
+        /// </summary>
+        public async Task<bool> CreateTestChargeForAvailableBalance(decimal amount)
+        {
+            if (!_isTestMode)
+                return false;
+
+            var options = new ChargeCreateOptions
+            {
+                Amount = (long)(amount * 100),
+                Currency = "eur",
+                Source = "tok_bypassPending", // Special token that bypasses pending state
+                Description = "Test charge for available balance"
+            };
+
+            var service = new ChargeService();
+            var charge = await service.CreateAsync(options);
+            
+            return charge.Status == "succeeded";
         }
     }
 }

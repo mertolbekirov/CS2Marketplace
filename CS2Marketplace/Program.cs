@@ -2,6 +2,7 @@ using CS2Marketplace.Data;
 using CS2Marketplace.Services;
 using Microsoft.EntityFrameworkCore;
 using Stripe;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,5 +53,10 @@ app.UseSession();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+var cultureInfo = new CultureInfo("en-US");
+cultureInfo.NumberFormat.CurrencySymbol = "€";
+CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
+CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
 
 app.Run();

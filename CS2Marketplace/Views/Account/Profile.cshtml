@@ -1,19 +1,163 @@
 ﻿@model CS2Marketplace.Models.User
 
 @{
-    ViewData["Title"] = "My Profile";
+    ViewData["Title"] = "Your Profile";
 }
 
-<h2>My Profile</h2>
+<div class="container mt-4">
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    }
 
-<div class="card" style="max-width: 400px;">
-    <div class="card-body">
-        <h4 class="card-title">@Model.Username</h4>
-        <p>
-            <img src="@Model.AvatarUrl" alt="Avatar" style="width:100px;" />
-        </p>
-        <p>Steam ID: @Model.SteamId</p>
-        <p>Balance: @Model.Balance.ToString("C")</p>
-        <p>Last Login: @Model.LastLogin</p>
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Message"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Profile Information -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Profile Information</h3>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <img src="@Model.AvatarUrl" alt="Profile" class="rounded-circle" style="width: 150px; height: 150px; object-fit: cover;" />
+                    </div>
+                    <h4 class="text-center">@Model.Username</h4>
+                    <p class="text-muted text-center">Member since @Model.CreatedAt.ToString("MMMM yyyy")</p>
+
+                    <!-- Email Update Form -->
+                    <div class="card @(string.IsNullOrEmpty(Model.Email) || !Model.Email.Contains("@") ? "border-danger" : "")">
+                        <div class="card-body">
+                            <h5 class="card-title">Email Address</h5>
+                            <form asp-action="UpdateEmail" method="post">
+                                <div class="form-group">
+                                    <input type="email" 
+                                           class="form-control @(string.IsNullOrEmpty(Model.Email) || !Model.Email.Contains("@") ? "is-invalid" : "")" 
+                                           id="email" 
+                                           name="email" 
+                                           value="@Model.Email"
+                                           required>
+                                    <div class="invalid-feedback">
+                                        A valid email address is required for withdrawals and Stripe Connect.
+                                    </div>
+                                    <small class="form-text text-muted">This email is used for Stripe Connect and important notifications.</small>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i class="fas fa-save"></i> Update Email
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wallet Information -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3>Wallet</h3>
+                    <div>
+                        <span class="h4 mb-0">@Model.Balance.ToString("C")</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <a href="@Url.Action("Deposit", "Payment")" class="btn btn-success btn-block mb-3">
+                                <i class="fas fa-plus"></i> Deposit Funds
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="@Url.Action("Request", "Withdrawal")" class="btn btn-primary btn-block mb-3">
+                                <i class="fas fa-minus"></i> Withdraw Funds
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Stripe Connect Status -->
+                    <div class="mt-4">
+                        <h4>Stripe Connect Status</h4>
+                        @if (string.IsNullOrEmpty(Model.StripeConnectAccountId))
+                        {
+                            <div class="alert alert-info">
+                                <p>You haven't set up Stripe Connect yet. This is required to withdraw funds.</p>
+                                <a href="@Url.Action("Onboard", "StripeConnect")" class="btn btn-primary">
+                                    Set Up Stripe Connect
+                                </a>
+                            </div>
+                        }
+                        else if (!Model.StripeConnectEnabled)
+                        {
+                            <div class="alert alert-warning">
+                                <p>Your Stripe Connect account is not fully set up.</p>
+                                <a href="@Url.Action("Onboard", "StripeConnect")" class="btn btn-primary">
+                                    Complete Setup
+                                </a>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-success">
+                                <p>Your Stripe Connect account is active and ready to receive payments.</p>
+                                <a href="@Model.StripeConnectDashboardLink" class="btn btn-info" target="_blank">
+                                    View Stripe Dashboard
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Transaction History</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var transaction in Model.WalletTransactions.OrderByDescending(t => t.Timestamp))
+                                {
+                                    <tr>
+                                        <td>@transaction.Timestamp.ToString("g")</td>
+                                        <td>@transaction.TransactionType</td>
+                                        <td class="@(transaction.TransactionType == TransactionType.Deposit ? "text-success" : "text-danger")">
+                                            @(transaction.TransactionType == TransactionType.Deposit ? "+" : "-")@transaction.Amount.ToString("C")
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-success">Completed</span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>

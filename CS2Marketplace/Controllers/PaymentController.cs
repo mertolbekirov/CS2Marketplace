@@ -52,13 +52,6 @@ namespace CS2Marketplace.Controllers
             decimal? depositedAmount = await _paymentService.ConfirmDepositSessionAsync(session_id);
             if (depositedAmount.HasValue)
             {
-                string steamId = HttpContext.Session.GetString("SteamId");
-                var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
-                if (user != null)
-                {
-                    user.Balance += depositedAmount.Value;
-                    await _dbContext.SaveChangesAsync();
-                }
                 ViewBag.Message = $"Deposit successful: {depositedAmount.Value:C} added to your balance.";
             }
             else
@@ -73,6 +66,19 @@ namespace CS2Marketplace.Controllers
         {
             ViewBag.Message = "Deposit canceled.";
             return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateTestCharge(decimal amount)
+        {
+            if (!_paymentService._isTestMode)
+                return BadRequest("This endpoint is only available in test mode");
+
+            var success = await _paymentService.CreateTestChargeForAvailableBalance(amount);
+            if (success)
+                return RedirectToAction("Profile", "Account");
+            
+            return BadRequest("Failed to create test charge");
         }
     }
 }

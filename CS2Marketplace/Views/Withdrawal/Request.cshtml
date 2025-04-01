@@ -1,26 +1,71 @@
-﻿@{
-    ViewData["Title"] = "Request Withdrawal";
+﻿@model CS2Marketplace.Models.User
+@{
+    ViewData["Title"] = "Withdraw Funds";
 }
 
-<h2>Request Withdrawal</h2>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Withdraw Funds</h2>
+                </div>
+                <div class="card-body">
+                    @if (!Model.StripeConnectEnabled)
+                    {
+                        <div class="alert alert-warning">
+                            <h4>Stripe Connect Required</h4>
+                            <p>You need to set up a Stripe Connect account to withdraw funds. This is required to receive payments directly to your bank account.</p>
+                            <a href="@Url.Action("Onboard", "StripeConnect")" class="btn btn-primary">
+                                Set Up Stripe Connect
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <h4>Current Balance</h4>
+                            <p class="h3">@Model.Balance.ToString("C")</p>
+                        </div>
 
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger">
-        @TempData["Error"]
-    </div>
-}
-@if (TempData["Message"] != null)
-{
-    <div class="alert alert-success">
-        @TempData["Message"]
-    </div>
-}
+                        <form asp-action="Request" method="post">
+                            <div class="form-group">
+                                <label for="amount">Amount to Withdraw (EUR)</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">€</span>
+                                    </div>
+                                    <input type="number" 
+                                           class="form-control" 
+                                           id="amount" 
+                                           name="amount" 
+                                           min="1" 
+                                           max="@Model.Balance" 
+                                           step="0.01" 
+                                           required>
+                                </div>
+                                <small class="form-text text-muted">Maximum withdrawal: @Model.Balance.ToString("C")</small>
+                            </div>
 
-<form asp-controller="Withdrawal" asp-action="Request" method="post" class="form-inline">
-    <div class="form-group mb-2">
-        <label for="amount" class="mr-2">Withdrawal Amount:</label>
-        <input type="number" step="0.01" name="amount" id="amount" class="form-control" required />
+                            <div class="form-group">
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    Request Withdrawal
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="mt-4">
+                            <h4>Withdrawal Information</h4>
+                            <ul>
+                                <li>Funds will be transferred to your connected bank account</li>
+                                <li>Processing time: 1-3 business days</li>
+                                <li>Minimum withdrawal: €1.00</li>
+                                <li>Maximum withdrawal: Your current balance</li>
+                            </ul>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
     </div>
-    <button type="submit" class="btn btn-primary mb-2 ml-2">Withdraw</button>
-</form>
+</div>

@@ -25,14 +25,42 @@ namespace CS2Marketplace.Controllers
                 return RedirectToAction("SignIn", "Auth");
             }
 
-            // Find the user in the database
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
+            // Find the user in the database and include their wallet transactions
+            var user = await _dbContext.Users
+                .Include(u => u.WalletTransactions)
+                .FirstOrDefaultAsync(u => u.SteamId == steamId);
+                
             if (user == null)
             {
                 return RedirectToAction("SignIn", "Auth");
             }
 
             return View(user);
+        }
+
+        // POST: /Account/UpdateEmail
+        [HttpPost]
+        public async Task<IActionResult> UpdateEmail(string email)
+        {
+            if (string.IsNullOrEmpty(email) || !email.Contains("@"))
+            {
+                TempData["Error"] = "Please enter a valid email address.";
+                return RedirectToAction("Profile");
+            }
+
+            var steamId = HttpContext.Session.GetString("SteamId");
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
+            
+            if (user == null)
+            {
+                return RedirectToAction("SignIn", "Auth");
+            }
+
+            user.Email = email;
+            await _dbContext.SaveChangesAsync();
+
+            TempData["Message"] = "Your email address has been updated successfully.";
+            return RedirectToAction("Profile");
         }
     }
 }

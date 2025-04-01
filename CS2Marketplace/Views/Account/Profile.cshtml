@@ -62,6 +62,35 @@
                             </form>
                         </div>
                     </div>
+                    
+                    <!-- Steam API Key Setup -->
+                    <div class="card mt-3 @(string.IsNullOrEmpty(Model.SteamApiKey) ? "border-warning" : "border-success")">
+                        <div class="card-body">
+                            <h5 class="card-title">Steam API Key</h5>
+                            <form asp-action="UpdateSteamApiKey" method="post">
+                                <div class="form-group">
+                                    <input type="text" 
+                                           class="form-control @(string.IsNullOrEmpty(Model.SteamApiKey) ? "is-invalid" : "is-valid")" 
+                                           id="steamApiKey" 
+                                           name="steamApiKey" 
+                                           value="@Model.SteamApiKey"
+                                           placeholder="Enter your Steam API Key">
+                                    <div class="@(string.IsNullOrEmpty(Model.SteamApiKey) ? "invalid-feedback" : "valid-feedback")">
+                                        @(string.IsNullOrEmpty(Model.SteamApiKey) 
+                                            ? "A Steam API Key is required to list items for sale." 
+                                            : "Your Steam API Key is configured.")
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        You can get your Steam API Key from <a href="https://steamcommunity.com/dev/apikey" target="_blank">Steam Web API Key</a> page.
+                                        This is required to list items for sale.
+                                    </small>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-block mt-2">
+                                    <i class="fas fa-save"></i> Update Steam API Key
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -140,14 +169,12 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var transaction in Model.WalletTransactions.OrderByDescending(t => t.Timestamp))
+                                @foreach (var transaction in Model.WalletTransactions.OrderByDescending(t => t.CreatedAt))
                                 {
                                     <tr>
-                                        <td>@transaction.Timestamp.ToString("g")</td>
-                                        <td>@transaction.TransactionType</td>
-                                        <td class="@(transaction.TransactionType == TransactionType.Deposit ? "text-success" : "text-danger")">
-                                            @(transaction.TransactionType == TransactionType.Deposit ? "+" : "-")@transaction.Amount.ToString("C")
-                                        </td>
+                                        <td>@transaction.CreatedAt.ToString("g")</td>
+                                        <td>@(transaction.Type == WalletTransactionType.Deposit ? "+" : "-")@transaction.Amount.ToString("C")</td>
+                                        <td>@(transaction.Type == WalletTransactionType.Withdrawal ? "Withdrawal" : "Deposit")</td>
                                         <td>
                                             <span class="badge badge-success">Completed</span>
                                         </td>

@@ -1,0 +1,53 @@
+@{
+    ViewData["Title"] = "Configure Trade API";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Configure Steam Trade API</h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h4>Steam API Key Required</h4>
+                        <p>To sell items on CS2Marketplace, you need to provide your Steam API key. This allows us to create trade offers on your behalf when you sell an item.</p>
+                        <ol>
+                            <li>Visit the <a href="@ViewBag.ApiKeyUrl" target="_blank">Steam API Key page</a></li>
+                            <li>If prompted, log in to your Steam account</li>
+                            <li>Enter "CS2Marketplace" as the domain name</li>
+                            <li>Copy the generated API key</li>
+                            <li>Paste it in the form below</li>
+                        </ol>
+                    </div>
+
+                    <form asp-action="Configure" method="post">
+                        <div class="form-group">
+                            <label for="apiKey">Steam API Key</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="apiKey" 
+                                   name="apiKey" 
+                                   required 
+                                   placeholder="Enter your Steam API key">
+                            <small class="form-text text-muted">Your API key will be stored securely and used only for creating trade offers.</small>
+                        </div>
+
+                        @if (!ViewData.ModelState.IsValid)
+                        {
+                            <div class="alert alert-danger">
+                                @Html.ValidationSummary()
+                            </div>
+                        }
+
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-primary">Save API Key</button>
+                            <a href="@Url.Action("Index")" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

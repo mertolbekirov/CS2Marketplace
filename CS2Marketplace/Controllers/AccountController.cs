@@ -62,5 +62,26 @@ namespace CS2Marketplace.Controllers
             TempData["Message"] = "Your email address has been updated successfully.";
             return RedirectToAction("Profile");
         }
+
+        // POST: /Account/UpdateSteamApiKey
+        [HttpPost]
+        public async Task<IActionResult> UpdateSteamApiKey(string steamApiKey)
+        {
+            var steamId = HttpContext.Session.GetString("SteamId");
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
+            
+            if (user == null)
+            {
+                return RedirectToAction("SignIn", "Auth");
+            }
+
+            user.SteamApiKey = steamApiKey;
+            await _dbContext.SaveChangesAsync();
+
+            TempData["Message"] = string.IsNullOrEmpty(steamApiKey) 
+                ? "Your Steam API Key has been removed." 
+                : "Your Steam API Key has been updated successfully.";
+            return RedirectToAction("Profile");
+        }
     }
 }

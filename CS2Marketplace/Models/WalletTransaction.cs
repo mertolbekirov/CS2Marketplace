@@ -2,33 +2,31 @@
 
 namespace CS2Marketplace.Models
 {
-    public enum TransactionType
+    public enum WalletTransactionType
     {
         Deposit,
         Withdrawal,
-        Payment,
         Refund
     }
 
-    public enum TransactionStatus
+    public enum WalletTransactionStatus
     {
         Pending,
         Completed,
         Failed,
-        Cancelled
+        Refunded
     }
 
     public class WalletTransaction
     {
         public int Id { get; set; }
         public int UserId { get; set; }
-        public TransactionType TransactionType { get; set; }
-        public decimal Amount { get; set; }
-        public DateTime Timestamp { get; set; }
-        public string PaymentId { get; set; } // Optional: Stripe payment ID or test payment identifier
-        public TransactionStatus Status { get; set; } = TransactionStatus.Pending;
-
-        // Navigation property
         public User User { get; set; }
+        public decimal Amount { get; set; }
+        public WalletTransactionType Type { get; set; }
+        public WalletTransactionStatus Status { get; set; }
+        public string Description { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string ReferenceId { get; set; }
     }
 }

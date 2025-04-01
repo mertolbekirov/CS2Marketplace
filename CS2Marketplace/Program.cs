@@ -17,6 +17,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddTransient<SteamAuthService>();
 builder.Services.AddTransient<SteamApiService>();
 builder.Services.AddTransient<PaymentService>();
+builder.Services.AddTransient<SteamTradeService>();
+
 // Register the GC-based float fetcher (consider it as a singleton if you want to keep its connection alive)
 builder.Services.AddSingleton<SteamFloatFetcher>(sp =>
 {
@@ -35,6 +37,9 @@ builder.Services.AddMemoryCache();
 builder.Services.AddControllersWithViews();
 builder.Services.AddSession();
 StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
+
+// Add background service for checking trade status
+builder.Services.AddHostedService<TradeStatusCheckService>();
 
 var app = builder.Build();
 

@@ -30,38 +30,72 @@ namespace CS2Marketplace.Controllers
         }
 
         // GET: /Marketplace/LoadInventory
-        public async Task<IActionResult> LoadInventory()
+        public async Task<IActionResult> LoadInventory(string? targetSteamId = null)
         {
-            string steamId = HttpContext.Session.GetString("SteamId");
-            if (string.IsNullOrEmpty(steamId))
+            string? currentUserSteamId = HttpContext.Session.GetString("SteamId");
+            if (string.IsNullOrEmpty(currentUserSteamId))
             {
                 return RedirectToAction("SignIn", "Auth");
             }
 
-            // Determine if force refresh is requested.
+            // If no target specified, show current user's inventory
+            string steamId = targetSteamId ?? currentUserSteamId;
+
+            // Get both users from database
+            var currentUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == currentUserSteamId);
+            var targetUser = steamId == currentUserSteamId ? currentUser : await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
+
+            if (currentUser == null || targetUser == null)
+            {
+                return RedirectToAction("SignIn", "Auth");
+            }
+
+            // Determine if force refresh is requested
             bool forceRefresh = Request.Query["force"].ToString().Equals("true", StringComparison.OrdinalIgnoreCase);
 
-            // Cache key based on steamId.
+            // Cache key based on steamId
+            string appId = _configuration.GetValue<string>("Steam:AppId") ?? "730";
+            string contextId = _configuration.GetValue<string>("Steam:ContextId") ?? "2";
+
             List<InventoryItem> inventory;
-
-                // Not in cache or forced refresh: load from Steam API.
-                string appId = _configuration.GetValue<string>("Steam:AppId") ?? "730";
-                string contextId = _configuration.GetValue<string>("Steam:ContextId") ?? "2";
-                inventory = await _steamApiService.GetPlayerInventoryAsync(steamId, appId, contextId);
-
-
-            // Retrieve active listing assetIds for the current user.
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
-            var activeListingIds = new List<string>();
-            if (user != null)
+            
+            // Get the application's API key for public inventory access
+            var appApiKey = _configuration.GetValue<string>("Steam:ApiKey");
+            if (string.IsNullOrEmpty(appApiKey))
             {
-                activeListingIds = await _dbContext.MarketplaceListings
-                    .Where(l => l.SellerId == user.Id && l.ListingStatus == ListingStatus.Active)
+                TempData["Error"] = "Application Steam API key is not configured.";
+                return View(new List<InventoryItem>());
+            }
+
+            // If viewing own inventory and has API key, use their key
+            string apiKeyToUse = (steamId == currentUserSteamId && !string.IsNullOrEmpty(currentUser.SteamApiKey))
+                ? currentUser.SteamApiKey
+                : appApiKey;
+
+            inventory = await _steamApiService.GetPlayerInventoryAsync(steamId, appId, contextId, apiKeyToUse);
+
+            if (inventory == null)
+            {
+                string profileUrl = $"https://steamcommunity.com/profiles/{steamId}/edit/settings";
+                TempData["Error"] = $"Failed to load inventory. If this is your inventory, please ensure it is set to Public in your <a href='{profileUrl}' target='_blank'>Steam Profile Privacy Settings</a>.";
+                inventory = new List<InventoryItem>();
+            }
+
+            // Only show listing options if viewing own inventory
+            if (steamId == currentUserSteamId)
+            {
+                // Retrieve active listing assetIds for the current user
+                var activeListingIds = await _dbContext.MarketplaceListings
+                    .Where(l => l.SellerId == currentUser.Id && l.ListingStatus == ListingStatus.Active)
                     .Select(l => l.UniqueAssetId)
                     .ToListAsync();
+                ViewBag.ActiveListingIds = activeListingIds;
             }
-            ViewBag.ActiveListingIds = activeListingIds;
 
+            ViewBag.IsOwnInventory = steamId == currentUserSteamId;
+            ViewBag.HasApiKey = !string.IsNullOrEmpty(currentUser.SteamApiKey);
+            ViewBag.TargetUsername = targetUser.Username;
+            
             return View(inventory);
         }
 
@@ -69,18 +103,25 @@ namespace CS2Marketplace.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateListing(string assetId, decimal price)
         {
-            // Ensure the user is signed in.
+            // Ensure the user is signed in
             string steamId = HttpContext.Session.GetString("SteamId");
             if (string.IsNullOrEmpty(steamId))
             {
                 return RedirectToAction("SignIn", "Auth");
             }
 
-            // Get the current user.
+            // Get the current user
             var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
             if (user == null)
             {
                 return RedirectToAction("SignIn", "Auth");
+            }
+
+            // Check if user has configured their Steam API key
+            if (string.IsNullOrEmpty(user.SteamApiKey))
+            {
+                TempData["Error"] = "You need to set up your Steam API Key in your profile before you can list items for sale.";
+                return RedirectToAction("Profile", "Account");
             }
 
             // Prevent duplicate active listings for the same asset.
@@ -103,7 +144,7 @@ namespace CS2Marketplace.Controllers
                 // If inventory is not in cache, load it (using the same appId and contextId from configuration).
                 string appId = _configuration.GetValue<string>("Steam:AppId") ?? "730";
                 string contextId = _configuration.GetValue<string>("Steam:ContextId") ?? "2";
-                inventory = await _steamApiService.GetPlayerInventoryAsync(steamId, appId, contextId);
+                inventory = await _steamApiService.GetPlayerInventoryAsync(steamId, appId, contextId, user.SteamApiKey);
             }
 
             // Find the inventory item that matches the assetId.

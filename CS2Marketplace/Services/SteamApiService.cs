@@ -56,19 +56,23 @@ namespace CS2Marketplace.Services
             };
         }
 
-        // Fetches the player's inventory.
-        // If forceRefresh is false, the inventory is retrieved from cache (keyed by "inventory_{steamId}").
-        // For each item with an inspect link, we concurrently request float data via the csfloat API.
-        public async Task<List<InventoryItem>?> GetPlayerInventoryAsync(string steamId, string appId, string contextId, bool forceRefresh = false)
+        // Fetches the player's inventory using Steam API Key
+        public async Task<List<InventoryItem>?> GetPlayerInventoryAsync(string steamId, string appId, string contextId, string steamApiKey)
         {
             string cacheKey = $"inventory_{steamId}";
-            if (!forceRefresh && _cache.TryGetValue(cacheKey, out List<InventoryItem> cachedInventory))
+
+            if (_cache.TryGetValue(cacheKey, out List<InventoryItem> cachedInventory))
             {
                 return cachedInventory;
             }
 
             string url = $"https://steamcommunity.com/inventory/{steamId}/{appId}/{contextId}?l=english&count=5000";
             var response = await _httpClient.GetAsync(url);
+            
+            // If we get a 403, the inventory is likely private
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+                return null;
+                
             if (!response.IsSuccessStatusCode)
                 return null;
 
@@ -85,7 +89,7 @@ namespace CS2Marketplace.Services
             var descriptions = descriptionsElement.EnumerateArray().ToList();
             var inventoryItems = new List<InventoryItem>();
 
-            // Create a list to hold inspect tasks.
+            // Create a list to hold inspect tasks
             var inspectTasks = new List<Task<(string inspectLink, FloatData? floatData, InventoryItem item)>>();
 
             foreach (var asset in assets)
@@ -94,38 +98,32 @@ namespace CS2Marketplace.Services
                 string classId = asset.GetProperty("classid").GetString() ?? string.Empty;
                 string instanceId = asset.GetProperty("instanceid").GetString() ?? string.Empty;
 
-                // Find the matching description.
+                // Find the matching description
                 var description = descriptions.FirstOrDefault(d =>
                     d.GetProperty("classid").GetString() == classId &&
                     d.GetProperty("instanceid").GetString() == instanceId);
 
                 if (description.ValueKind != JsonValueKind.Undefined)
                 {
-                    string name = description.TryGetProperty("name", out var nameProp)
+                    string name = description.TryGetProperty("market_hash_name", out var nameProp)
                         ? nameProp.GetString() ?? "Unknown"
                         : "Unknown";
                     string iconUrl = description.TryGetProperty("icon_url", out var iconProp)
                         ? iconProp.GetString() ?? string.Empty
                         : string.Empty;
 
-                    // Retrieve the inspect link.
+                    // Retrieve the inspect link
                     string? inspectLink = null;
-                    if (description.TryGetProperty("inspect_link", out var inspectLinkProp))
-                    {
-                        inspectLink = inspectLinkProp.GetString();
-                        inspectLink = inspectLink.Replace("%owner_steamid%", steamId);
-                        inspectLink = inspectLink.Replace("%assetid%", assetId);
-                    }
-                    else if (description.TryGetProperty("actions", out var actionsProp) &&
-                             actionsProp.ValueKind == JsonValueKind.Array)
+                    if (description.TryGetProperty("actions", out var actionsProp) &&
+                        actionsProp.ValueKind == JsonValueKind.Array)
                     {
                         var firstAction = actionsProp.EnumerateArray().FirstOrDefault();
                         if (firstAction.ValueKind == JsonValueKind.Object &&
                             firstAction.TryGetProperty("link", out var linkProp))
                         {
                             inspectLink = linkProp.GetString();
-                            inspectLink = inspectLink.Replace("%owner_steamid%", steamId);
-                            inspectLink = inspectLink.Replace("%assetid%", assetId);
+                            inspectLink = inspectLink?.Replace("%owner_steamid%", steamId);
+                            inspectLink = inspectLink?.Replace("%assetid%", assetId);
                         }
                     }
 
@@ -137,13 +135,11 @@ namespace CS2Marketplace.Services
                         Name = name,
                         ImageUrl = !string.IsNullOrEmpty(iconUrl)
                             ? "https://steamcommunity-a.akamaihd.net/economy/image/" + iconUrl
-                            : string.Empty,
-                        FloatValue = null,
-                        PatternIndex = null
+                            : string.Empty
                     };
                     inventoryItems.Add(item);
 
-                    // If an inspect link exists, queue up an asynchronous request.
+                    // If an inspect link exists, queue up an asynchronous request
                     if (!string.IsNullOrEmpty(inspectLink))
                     {
                         inspectTasks.Add(Task.Run(async () =>
@@ -155,10 +151,10 @@ namespace CS2Marketplace.Services
                 }
             }
 
-            // Await all float data requests concurrently.
+            // Await all float data requests concurrently
             var results = await Task.WhenAll(inspectTasks);
 
-            // Map the results back to inventory items.
+            // Map the results back to inventory items
             foreach (var (inspectLink, floatData, item) in results)
             {
                 if (floatData != null)
@@ -172,7 +168,6 @@ namespace CS2Marketplace.Services
                 }
             }
 
-            // Cache the complete inventory for 5 minutes.
             _cache.Set(cacheKey, inventoryItems, TimeSpan.FromMinutes(5));
             return inventoryItems;
         }

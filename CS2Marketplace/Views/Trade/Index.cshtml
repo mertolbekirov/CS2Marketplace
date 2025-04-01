@@ -1,4 +1,77 @@
 ﻿@page
-@model CS2Marketplace.Views.Trade.IndexModel
-@{
+@model IEnumerable<CS2Marketplace.Models.Trade>
+@using CS2Marketplace.Models
+
+<div class="container mt-4">
+    <h2>Your Trades</h2>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            You don't have any trades yet.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var trade in Model)
+                    {
+                        <tr>
+                            <td>@trade.ItemName</td>
+                            <td>@trade.Amount.ToString("C")</td>
+                            <td>
+                                <span class="badge badge-@(trade.Status switch {
+                                    TradeStatus.Completed => "success",
+                                    TradeStatus.Failed => "danger",
+                                    TradeStatus.Cancelled => "warning",
+                                    TradeStatus.Refunded => "info",
+                                    _ => "primary"
+                                })">
+                                    @trade.Status.ToString()
+                                </span>
+                            </td>
+                            <td>@trade.CreatedAt.ToString("g")</td>
+                            <td>
+                                @if (trade.Status == TradeStatus.WaitingForBuyer)
+                                {
+                                    <a href="@Url.Action("Accept", new { id = trade.Id })" class="btn btn-success btn-sm">Accept Trade</a>
+                                }
+                                @if (trade.Status == TradeStatus.WaitingForSeller)
+                                {
+                                    <a href="@Url.Action("SendOffer", new { id = trade.Id })" class="btn btn-primary btn-sm">Send Trade Offer</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<style>
+.trade-item {
+    transition: all 0.2s ease;
+    background: #fff;
 }
+
+.trade-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.badge {
+    padding: 0.5em 0.8em;
+    font-weight: 500;
+}
+</style>

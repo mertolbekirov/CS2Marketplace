@@ -203,11 +203,13 @@ namespace CS2Marketplace.Services
                     // Record the transaction
                     var transaction = new WalletTransaction
                     {
-                        UserId = user.Id,
-                        TransactionType = TransactionType.Deposit,
+                        UserId = int.Parse(user.Id.ToString()),
                         Amount = amount,
-                        Timestamp = DateTime.UtcNow,
-                        PaymentId = session.PaymentIntentId
+                        Type = WalletTransactionType.Deposit,
+                        Description = "Stripe payment",
+                        CreatedAt = DateTime.UtcNow,
+                        Status = WalletTransactionStatus.Completed,
+                        ReferenceId = session.PaymentIntentId
                     };
                     
                     _dbContext.WalletTransactions.Add(transaction);
@@ -252,12 +254,13 @@ namespace CS2Marketplace.Services
                 // Record the transaction
                 var transaction = new WalletTransaction
                 {
-                    UserId = user.Id,
-                    TransactionType = TransactionType.Withdrawal,
+                    UserId = int.Parse(user.Id.ToString()),
                     Amount = amount,
-                    Timestamp = DateTime.UtcNow,
-                    PaymentId = transfer.Id,
-                    Status = TransactionStatus.Pending
+                    Type = WalletTransactionType.Withdrawal,
+                    Description = "Stripe payout",
+                    CreatedAt = DateTime.UtcNow,
+                    Status = WalletTransactionStatus.Pending,
+                    ReferenceId = transfer.Id
                 };
                 
                 _dbContext.WalletTransactions.Add(transaction);
@@ -319,7 +322,7 @@ namespace CS2Marketplace.Services
         public async Task HandleTransferWebhookAsync(string eventType, string transferId)
         {
             var transaction = await _dbContext.WalletTransactions
-                .FirstOrDefaultAsync(t => t.PaymentId == transferId && t.TransactionType == TransactionType.Withdrawal);
+                .FirstOrDefaultAsync(t => t.ReferenceId == transferId && t.Type == WalletTransactionType.Withdrawal);
 
             if (transaction == null)
             {
@@ -329,10 +332,10 @@ namespace CS2Marketplace.Services
             switch (eventType)
             {
                 case "transfer.paid":
-                    transaction.Status = TransactionStatus.Completed;
+                    transaction.Status = WalletTransactionStatus.Completed;
                     break;
                 case "transfer.failed":
-                    transaction.Status = TransactionStatus.Failed;
+                    transaction.Status = WalletTransactionStatus.Failed;
                     // If the transfer failed, we should refund the user's balance
                     var user = await _dbContext.Users.FindAsync(transaction.UserId);
                     if (user != null)
@@ -341,7 +344,7 @@ namespace CS2Marketplace.Services
                     }
                     break;
                 case "transfer.canceled":
-                    transaction.Status = TransactionStatus.Cancelled;
+                    transaction.Status = WalletTransactionStatus.Failed;
                     // If the transfer was cancelled, we should refund the user's balance
                     user = await _dbContext.Users.FindAsync(transaction.UserId);
                     if (user != null)

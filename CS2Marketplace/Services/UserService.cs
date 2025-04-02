@@ -77,5 +77,34 @@ namespace CS2Marketplace.Services
 
             return await _steamApiService.IsSteamUserAbleToTrade(user);
         }
+
+        public async Task<User> GetOrCreateUserAsync(string steamId, string username, string avatarUrl)
+        {
+            var user = await GetUserBySteamIdAsync(steamId);
+            
+            if (user == null)
+            {
+                user = new User
+                {
+                    SteamId = steamId,
+                    Username = username,
+                    AvatarUrl = avatarUrl,
+                    Email = "",
+                    Balance = 0.0m,
+                    CreatedAt = DateTime.UtcNow,
+                    LastLogin = DateTime.UtcNow
+                };
+                _dbContext.Users.Add(user);
+            }
+            else
+            {
+                user.Username = username;
+                user.AvatarUrl = avatarUrl;
+                user.LastLogin = DateTime.UtcNow;
+            }
+
+            await _dbContext.SaveChangesAsync();
+            return user;
+        }
     }
 } 

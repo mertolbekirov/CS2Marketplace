@@ -11,5 +11,6 @@ namespace CS2Marketplace.Services.Interfaces
         Task UpdateUserSteamApiKeyAsync(string steamId, string steamApiKey);
         Task UpdateUserTradeLinkAsync(string steamId, string tradeLink);
         Task<bool> VerifyUserSellerEligibilityAsync(User user);
+        Task<User> GetOrCreateUserAsync(string steamId, string username, string avatarUrl);
     }
 } 

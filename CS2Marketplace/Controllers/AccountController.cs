@@ -1,48 +1,29 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using CS2Marketplace.Data;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using CS2Marketplace.Models;
-using System;
 using CS2Marketplace.Services.Interfaces;
+using CS2Marketplace.Filters;
+using Microsoft.AspNetCore.Http;
 
 namespace CS2Marketplace.Controllers
 {
+    [RequireAuthentication]
     public class AccountController : Controller
     {
-        private readonly ApplicationDbContext _dbContext;
-        private readonly ISteamVerificationService steamVerificationService;
+        private readonly IUserService _userService;
 
-        public AccountController(ApplicationDbContext dbContext, ISteamVerificationService steamVerificationService)
+        public AccountController(IUserService userService)
         {
-            _dbContext = dbContext;
-            this.steamVerificationService = steamVerificationService;
+            _userService = userService;
         }
 
-        // GET: /Account/Profile
         public async Task<IActionResult> Profile()
         {
             var steamId = HttpContext.Session.GetString("SteamId");
-            if (string.IsNullOrEmpty(steamId))
-            {
-                return RedirectToAction("SignIn", "Auth");
-            }
-
-            // Find the user in the database and include their wallet transactions
-            var user = await _dbContext.Users
-                .Include(u => u.WalletTransactions)
-                .FirstOrDefaultAsync(u => u.SteamId == steamId);
-                
-            if (user == null)
-            {
-                return RedirectToAction("SignIn", "Auth");
-            }
-
+            var user = await _userService.GetUserWithTransactionsAsync(steamId);
             return View(user);
         }
 
-        // POST: /Account/UpdateEmail
         [HttpPost]
         public async Task<IActionResult> UpdateEmail(string email)
         {
@@ -53,45 +34,27 @@ namespace CS2Marketplace.Controllers
             }
 
             var steamId = HttpContext.Session.GetString("SteamId");
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
-            
-            if (user == null)
-            {
-                return RedirectToAction("SignIn", "Auth");
-            }
-
-            user.Email = email;
-            await _dbContext.SaveChangesAsync();
-
+            await _userService.UpdateUserEmailAsync(steamId, email);
             TempData["Message"] = "Your email address has been updated successfully.";
             return RedirectToAction("Profile");
         }
 
-        // POST: /Account/UpdateSteamApiKey
         [HttpPost]
         public async Task<IActionResult> UpdateSteamApiKey(string steamApiKey)
         {
             var steamId = HttpContext.Session.GetString("SteamId");
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
-            
-            if (user == null)
-            {
-                return RedirectToAction("SignIn", "Auth");
-            }
-
-            user.SteamApiKey = steamApiKey;
-            await _dbContext.SaveChangesAsync();
+            await _userService.UpdateUserSteamApiKeyAsync(steamId, steamApiKey);
 
             var isApiKeyRemoved = string.IsNullOrEmpty(steamApiKey);
-
             TempData["Message"] = isApiKeyRemoved
                 ? "Your Steam API Key has been removed."
                 : "Your Steam API Key has been updated successfully.";
 
             if (!isApiKeyRemoved)
             {
-                var isApiKeyCorrectandIsUserEligibleForTrade = await steamVerificationService.VerifyUserEligibilityAsync(user);
-                if (!isApiKeyCorrectandIsUserEligibleForTrade)
+                var user = await _userService.GetUserBySteamIdAsync(steamId);
+                var isEligible = await _userService.VerifyUserEligibilityAsync(user);
+                if (!isEligible)
                 {
                     TempData["Message"] += " However, your account is not eligible for trading. Please check your API key and Steam Account status.";
                 }
@@ -100,20 +63,11 @@ namespace CS2Marketplace.Controllers
             return RedirectToAction("Profile");
         }
 
-        // POST: /Account/UpdateTradeLink
         [HttpPost]
         public async Task<IActionResult> UpdateTradeLink(string tradeLink)
         {
             var steamId = HttpContext.Session.GetString("SteamId");
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
-
-            if (user == null)
-            {
-                return RedirectToAction("SignIn", "Auth");
-            }
-
-            user.TradeLink = tradeLink;
-            await _dbContext.SaveChangesAsync();
+            await _userService.UpdateUserTradeLinkAsync(steamId, tradeLink);
 
             TempData["Message"] = string.IsNullOrEmpty(tradeLink)
                 ? "Your Trade Link has been removed."

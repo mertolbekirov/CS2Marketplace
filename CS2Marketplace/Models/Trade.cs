@@ -1,17 +1,19 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace CS2Marketplace.Models
 {
     public enum TradeStatus
     {
-        Pending,
-        WaitingForPayment,
-        WaitingForSeller,
-        WaitingForBuyer,
-        Completed,
-        Failed,
-        Cancelled,
-        Refunded
+        WaitingForSeller,          // Initial state, seller needs to send trade offer
+        OfferSent,                // Seller has marked trade as sent
+        WaitingForBuyerConfirmation, // Waiting for buyer to confirm receipt
+        Completed,                // Buyer confirmed receipt
+        Disputed,                 // Buyer reported issue
+        DisputeResolved,          // Admin resolved the dispute
+        Cancelled,                // Trade was cancelled
+        Refunded,                 // Buyer was refunded
+        Expired                   // Buyer didn't respond within time limit
     }
 
     public class Trade
@@ -29,29 +31,41 @@ namespace CS2Marketplace.Models
 
         public string ItemId { get; set; }          // Steam item asset ID
         public string ItemName { get; set; }        // Item name for display
-        public string ItemWear { get; set; }        // Float value
+        public string? ItemWear { get; set; }       // Float value
         public decimal Amount { get; set; }
         
         public string? TradeOfferId { get; set; }    // Steam trade offer ID
         public TradeStatus Status { get; set; }
         
-        public string StatusMessage { get; set; }    // Optional message about current status
-        
-        // Transaction tracking
-        public string? PaymentIntentId { get; set; }  // Stripe payment intent ID
-        public bool IsPaid { get; set; }         // Whether the payment has been processed
-        public bool IsRefunded { get; set; }         // Whether the payment has been refunded
-        public string? RefundId { get; set; }
-        public DateTime? RefundedAt { get; set; }
+        public string? StatusMessage { get; set; }    // Optional message about current status
+        public string? DisputeReason { get; set; }   // Reason if buyer disputes
+        public string? DisputeResolution { get; set; } // How the dispute was resolved
+        public string? AdminNotes { get; set; }      // Notes from admin review
         
         public DateTime CreatedAt { get; set; }
-        public DateTime? CompletedAt { get; set; }
-        public DateTime? LastChecked { get; set; }   // Last time we checked trade status
-        public DateTime? TradeOfferExpiresAt { get; set; } // When the trade offer expires
+        public DateTime? OfferSentAt { get; set; }   // When seller marked as sent
+        public DateTime? CompletedAt { get; set; }   // When buyer confirmed or auto-completed
+        public DateTime? DisputedAt { get; set; }    // When dispute was raised
+        public DateTime? ResolvedAt { get; set; }    // When dispute was resolved
+        public DateTime? LastChecked { get; set; }   // Last time status was updated
+        public DateTime? BuyerResponseDeadline { get; set; } // 24-hour deadline for buyer to respond
+
+        public bool IsRefunded { get; set; }
+        public DateTime? RefundedAt { get; set; }
         
-        public bool ShouldTimeout => 
-            Status == TradeStatus.WaitingForBuyer && 
-            TradeOfferExpiresAt.HasValue && 
-            DateTime.UtcNow > TradeOfferExpiresAt.Value;
+        public string TradeOfferUrl { get; set; }   // Buyer's trade URL
+
+        // Helper properties
+        public bool IsPastDeadline => 
+            Status == TradeStatus.WaitingForBuyerConfirmation && 
+            BuyerResponseDeadline.HasValue && 
+            DateTime.UtcNow > BuyerResponseDeadline.Value;
+
+        public bool CanBuyerRespond =>
+            Status == TradeStatus.WaitingForBuyerConfirmation &&
+            !IsPastDeadline;
+
+        public bool RequiresAdminReview =>
+            Status == TradeStatus.Disputed;
     }
 }

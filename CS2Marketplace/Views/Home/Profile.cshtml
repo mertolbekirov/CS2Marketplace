@@ -1,0 +1,72 @@
+@model CS2Marketplace.Models.User
+
+<div class="container mt-4">
+    <h2>Profile Settings</h2>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["Success"]
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["Error"]
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5>Steam API Key</h5>
+                    <div class="input-group mb-2">
+                        <input type="text" class="form-control" value="@Model?.SteamApiKey" readonly>
+                        @if (!string.IsNullOrEmpty(Model?.SteamApiKey))
+                        {
+                            <div class="input-group-append">
+                                <span class="input-group-text text-success">✓</span>
+                            </div>
+                        }
+                    </div>
+                    <p class="text-muted mb-2">Your Steam API Key is configured.</p>
+                    <p class="mb-2">You can get your Steam API Key from <a href="@ViewBag.ApiKeyUrl" target="_blank">Steam Web API Key</a> page. This is required to list items for sale.</p>
+                    <form asp-controller="Trade" asp-action="ConfigureApiKey" method="post">
+                        <div class="form-group">
+                            <input type="text" class="form-control mb-2" name="apiKey" placeholder="Enter new API Key">
+                            <button type="submit" class="btn btn-primary">Update Steam API Key</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5>Steam Trade Link</h5>
+                    <div class="input-group mb-2">
+                        <input type="text" class="form-control" value="@Model?.TradeLink" readonly>
+                        @if (!string.IsNullOrEmpty(Model?.TradeLink))
+                        {
+                            <div class="input-group-append">
+                                <span class="input-group-text text-success">✓</span>
+                            </div>
+                        }
+                    </div>
+                    <p class="mb-2">Get your trade link from <a href="https://steamcommunity.com/id/me/tradeoffers/privacy#trade_offer_access_url" target="_blank">Steam Trade Privacy Settings</a></p>
+                    <form asp-controller="Trade" asp-action="ConfigureTradeLink" method="post">
+                        <div class="form-group">
+                            <input type="text" class="form-control mb-2" name="tradeLink" placeholder="Enter new Trade Link">
+                            <button type="submit" class="btn btn-primary">Update Steam Trade Link</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Other profile settings can go here -->
+</div> 

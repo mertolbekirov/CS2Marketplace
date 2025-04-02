@@ -4,6 +4,7 @@ using CS2Marketplace.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CS2Marketplace.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250401212324_MakeUserTradeLinkNullable")]
+    partial class MakeUserTradeLinkNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -105,17 +108,11 @@ namespace CS2Marketplace.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("AdminNotes")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("BuyerId")
                         .HasColumnType("int");
-
-                    b.Property<DateTime?>("BuyerResponseDeadline")
-                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
@@ -123,14 +120,8 @@ namespace CS2Marketplace.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("DisputeReason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DisputeResolution")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DisputedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsRefunded")
                         .HasColumnType("bit");
@@ -144,6 +135,7 @@ namespace CS2Marketplace.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ItemWear")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("LastChecked")
@@ -152,13 +144,13 @@ namespace CS2Marketplace.Migrations
                     b.Property<int>("ListingId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("OfferSentAt")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("PaymentIntentId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RefundId")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("RefundedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("ResolvedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("SellerId")
@@ -168,7 +160,11 @@ namespace CS2Marketplace.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("StatusMessage")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("TradeOfferExpiresAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("TradeOfferId")
                         .HasColumnType("nvarchar(max)");
@@ -268,6 +264,7 @@ namespace CS2Marketplace.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ReferenceId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Status")

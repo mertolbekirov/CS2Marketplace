@@ -1,64 +1,75 @@
-﻿@page
-@model IEnumerable<CS2Marketplace.Models.Trade>
-@using CS2Marketplace.Models
+﻿@model List<CS2Marketplace.Models.Trade>
+@{
+    ViewData["Title"] = "My Trades";
+    var currentUserSteamId = Context.Session.GetString("SteamId");
+}
 
-<div class="container mt-4">
-    <h2>Your Trades</h2>
+<h2>My Trades</h2>
 
-    @if (!Model.Any())
-    {
-        <div class="alert alert-info">
-            You don't have any trades yet.
-        </div>
-    }
-    else
-    {
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Item</th>
-                        <th>Price</th>
-                        <th>Status</th>
-                        <th>Created</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var trade in Model)
-                    {
-                        <tr>
-                            <td>@trade.ItemName</td>
-                            <td>@trade.Amount.ToString("C")</td>
-                            <td>
-                                <span class="badge badge-@(trade.Status switch {
-                                    TradeStatus.Completed => "success",
-                                    TradeStatus.Failed => "danger",
-                                    TradeStatus.Cancelled => "warning",
-                                    TradeStatus.Refunded => "info",
-                                    _ => "primary"
-                                })">
-                                    @trade.Status.ToString()
-                                </span>
-                            </td>
-                            <td>@trade.CreatedAt.ToString("g")</td>
-                            <td>
-                                @if (trade.Status == TradeStatus.WaitingForBuyer)
-                                {
-                                    <a href="@Url.Action("Accept", new { id = trade.Id })" class="btn btn-success btn-sm">Accept Trade</a>
-                                }
-                                @if (trade.Status == TradeStatus.WaitingForSeller)
-                                {
-                                    <a href="@Url.Action("SendOffer", new { id = trade.Id })" class="btn btn-primary btn-sm">Send Trade Offer</a>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
-</div>
+@if (!Model.Any())
+{
+    <p>You don't have any trades at this time.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Type</th>
+                <th>Partner</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var trade in Model)
+            {
+                <tr>
+                    <td>@trade.ItemName</td>
+                    <td>
+                        @if (trade.Seller.SteamId == currentUserSteamId)
+                        {
+                            <span class="badge bg-warning">Selling</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">Buying</span>
+                        }
+                    </td>
+                    <td>
+                        @if (trade.Seller.SteamId == currentUserSteamId)
+                        {
+                            @trade.Buyer.Username
+                        }
+                        else
+                        {
+                            @trade.Seller.Username
+                        }
+                    </td>
+                    <td>@trade.Amount.ToString("C")</td>
+                    <td>
+                        <span class="badge @(trade.Status switch {
+                            TradeStatus.WaitingForSeller => "bg-warning",
+                            TradeStatus.OfferSent => "bg-info",
+                            TradeStatus.Completed => "bg-success",
+                            TradeStatus.Cancelled => "bg-danger",
+                            _ => "bg-secondary"
+                        })">
+                            @trade.StatusMessage
+                        </span>
+                    </td>
+                    <td>@trade.CreatedAt.ToString("g")</td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@trade.Id" class="btn btn-primary btn-sm">Details</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
 
 <style>
 .trade-item {

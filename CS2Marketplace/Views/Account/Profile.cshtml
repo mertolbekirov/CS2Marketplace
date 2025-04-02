@@ -62,6 +62,30 @@
                             </form>
                         </div>
                     </div>
+
+                    <!-- Email Update Form -->
+                    <div class="card @(string.IsNullOrEmpty(Model.TradeLink) ? "border-warning" : "border-success")">
+                        <div class="card-body">
+                            <h5 class="card-title">Trade Link<link href="#" rel="stylesheet" /></h5>
+                            <form asp-action="UpdateTradeLink" method="post">
+                                <div class="form-group">
+                                    <input type="text"
+                                           class="form-control @(string.IsNullOrEmpty(Model.TradeLink))"
+                                           id="tradeLink"
+                                           name="tradeLink"
+                                           value="@Model.TradeLink"
+                                           required>
+                                    <div class="invalid-feedback">
+                                        A valid Trade Link is required to receive trade offers.
+                                    </div>
+                                    <small class="form-text text-muted">Get your trade link from <a href="https://steamcommunity.com/id/me/tradeoffers/privacy#trade_offer_access_url" target="_blank">Steam Trade Privacy Settings</a></small>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i class="fas fa-save"></i> Update Trade Link
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                     
                     <!-- Steam API Key Setup -->
                     <div class="card mt-3 @(string.IsNullOrEmpty(Model.SteamApiKey) ? "border-warning" : "border-success")">
@@ -157,7 +181,7 @@
                 <div class="card-header">
                     <h3>Transaction History</h3>
                 </div>
-                <div class="card-body">
+    <div class="card-body">
                     <div class="table-responsive">
                         <table class="table">
                             <thead>
@@ -173,10 +197,10 @@
                                 {
                                     <tr>
                                         <td>@transaction.CreatedAt.ToString("g")</td>
-                                        <td>@(transaction.Type == WalletTransactionType.Deposit ? "+" : "-")@transaction.Amount.ToString("C")</td>
-                                        <td>@(transaction.Type == WalletTransactionType.Withdrawal ? "Withdrawal" : "Deposit")</td>
+                                        <td>@(transaction.Type.ToString())</td>
+                                        <td>@(transaction.Amount.ToString("C"))</td>
                                         <td>
-                                            <span class="badge badge-success">Completed</span>
+                                            @(transaction.Status.ToString())
                                         </td>
                                     </tr>
                                 }

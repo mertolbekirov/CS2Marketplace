@@ -41,9 +41,13 @@ else
                     <td>@(listing.FloatValue.HasValue ? listing.FloatValue.Value.ToString("0.00") : "N/A")</td>
                     <td>@(listing.PatternIndex.HasValue ? listing.PatternIndex.Value.ToString() : "N/A")</td>
                     <td>
-                        @if (listing.Seller.SteamId != currentUserSteamId)
+                        @if (listing.Seller.SteamId == currentUserSteamId)
                         {
-                            <form asp-action="Purchase" asp-route-listingId="@listing.Id" method="post" style="display: inline;">
+                            <span class="text-muted">Your listing</span>
+                        }
+                        else
+                        {
+                            <form asp-action="Purchase" asp-route-id="@listing.Id" method="post" style="display: inline;">
                                 <button type="submit" class="btn btn-primary btn-sm">Buy</button>
                             </form>
                         }

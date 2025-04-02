@@ -24,20 +24,20 @@ namespace CS2Marketplace.Services
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                try
-                {
-                    using (var scope = _services.CreateScope())
-                    {
-                        var tradeService = scope.ServiceProvider.GetRequiredService<SteamTradeService>();
-                        await tradeService.CheckPendingTrades();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error checking trade status");
-                }
+                //try
+                //{
+                //    using (var scope = _services.CreateScope())
+                //    {
+                //        var tradeService = scope.ServiceProvider.GetRequiredService<SteamTradeService>();
+                //        await tradeService.CheckPendingTrades();
+                //    }
+                //}
+                //catch (Exception ex)
+                //{
+                //    _logger.LogError(ex, "Error checking trade status");
+                //}
 
-                // Check every 5 minutes
+                //// Check every 5 minutes
                 await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
             }
         }

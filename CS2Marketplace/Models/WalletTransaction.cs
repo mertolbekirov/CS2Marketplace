@@ -6,6 +6,7 @@ namespace CS2Marketplace.Models
     {
         Deposit,
         Withdrawal,
+        Sale,
         Refund
     }
 
@@ -27,6 +28,6 @@ namespace CS2Marketplace.Models
         public WalletTransactionStatus Status { get; set; }
         public string Description { get; set; }
         public DateTime CreatedAt { get; set; }
-        public string ReferenceId { get; set; }
+        public string? ReferenceId { get; set; }  // Reference to related entity (e.g. trade ID)
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using CS2Marketplace.Models;
+using System;
 
 namespace CS2Marketplace.Controllers
 {
@@ -81,6 +82,27 @@ namespace CS2Marketplace.Controllers
             TempData["Message"] = string.IsNullOrEmpty(steamApiKey) 
                 ? "Your Steam API Key has been removed." 
                 : "Your Steam API Key has been updated successfully.";
+            return RedirectToAction("Profile");
+        }
+
+        // POST: /Account/UpdateTradeLink
+        [HttpPost]
+        public async Task<IActionResult> UpdateTradeLink(string tradeLink)
+        {
+            var steamId = HttpContext.Session.GetString("SteamId");
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
+
+            if (user == null)
+            {
+                return RedirectToAction("SignIn", "Auth");
+            }
+
+            user.TradeLink = tradeLink;
+            await _dbContext.SaveChangesAsync();
+
+            TempData["Message"] = string.IsNullOrEmpty(tradeLink)
+                ? "Your Trade Link has been removed."
+                : "Your Trade Link has been updated successfully.";
             return RedirectToAction("Profile");
         }
     }

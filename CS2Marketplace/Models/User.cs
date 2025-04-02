@@ -9,8 +9,9 @@ namespace CS2Marketplace.Models
         public string SteamId { get; set; }
         public string Username { get; set; }
         public string AvatarUrl { get; set; }
-        public string Email { get; set; }
-        public string APIKey { get; set; }
+        public string? Email { get; set; }
+        public string? APIKey { get; set; }
+        public string? TradeLink { get; set; }  // Full Steam trade URL
         public decimal Balance { get; set; } = 0.0m;
         public DateTime CreatedAt { get; set; }
         public DateTime LastLogin { get; set; }

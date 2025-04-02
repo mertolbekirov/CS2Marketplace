@@ -1,0 +1,198 @@
+@using CS2Marketplace.Models
+@using Microsoft.AspNetCore.Http
+@model CS2Marketplace.Models.Trade
+@{
+    ViewData["Title"] = "Trade Details";
+    var currentUserSteamId = Context.Session.GetString("SteamId");
+    var isSeller = currentUserSteamId == Model.Seller.SteamId;
+    var isBuyer = currentUserSteamId == Model.Buyer.SteamId;
+    var isOfferCreated = Model.Status == TradeStatus.OfferSent;
+}
+
+<div class="container mt-4">
+    <h2>Trade Details</h2>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Trade #@Model.Id</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Item Details</h6>
+                    <p><strong>Item:</strong> @Model.ItemName</p>
+                    @if (!string.IsNullOrEmpty(Model.ItemWear))
+                    {
+                        <p><strong>Float:</strong> @Model.ItemWear</p>
+                    }
+                    <p><strong>Price:</strong> $@Model.Amount.ToString("F2")</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Participants</h6>
+                    <p><strong>Seller:</strong> @Model.Seller.Username</p>
+                    <p><strong>Buyer:</strong> @Model.Buyer.Username</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (isSeller)
+    {
+        <div class="card mb-4 @(isOfferCreated ? "border-danger" : "")">
+            <div class="card-header">
+                <h5 class="mb-0">Seller Instructions</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.Status == TradeStatus.WaitingForSeller)
+                {
+                    <div class="steps">
+                        <div class="step mb-4">
+                            <h6>Step 1: Create Trade Offer</h6>
+                            <p>Click the button below to create a trade offer for the buyer.</p>
+                            <form id="createOfferForm" asp-controller="Trade" asp-action="CreateOffer" method="post" class="d-inline">
+                                <input type="hidden" name="tradeId" value="@Model.Id" />
+                                <button type="submit" class="btn btn-primary">Create Trade Offer</button>
+                            </form>
+                        </div>
+
+                        <div class="step mb-4">
+                            <h6>Step 2: Confirm Trade in Steam Guard</h6>
+                            <p>After clicking the button above, a Steam trade window will open. Complete the trade in Steam and confirm it in Steam Guard.</p>
+                        </div>
+
+                        <div class="step">
+                            <h6>Step 3: Mark Trade as Sent</h6>
+                            <p>Once you've confirmed the trade in Steam Guard, click the button below to mark the trade as sent.</p>
+                            <form asp-controller="Trade" asp-action="MarkAsSent" method="post" class="mt-3">
+                                <input type="hidden" name="id" value="@Model.Id" />
+                                <button type="submit" class="btn btn-success">Mark as Sent</button>
+                            </form>
+                        </div>
+                    </div>
+                }
+                else if (Model.Status == TradeStatus.WaitingForBuyerConfirmation)
+                {
+                    <p>Trade offer has been sent. Waiting for buyer to confirm receipt.</p>
+                }
+                else if (Model.Status == TradeStatus.Disputed)
+                {
+                    <p>This trade has been disputed by the buyer. An admin will review the case.</p>
+                }
+                else if (Model.Status == TradeStatus.Completed)
+                {
+                    <p>Trade has been completed successfully.</p>
+                }
+            </div>
+        </div>
+    }
+
+    @if (isBuyer)
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Buyer Instructions</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.Status == TradeStatus.WaitingForSeller)
+                {
+                    <p>Waiting for seller to send the trade offer.</p>
+                }
+                else if (Model.Status == TradeStatus.OfferSent)
+                {
+                    <p>Seller has sent the trade offer. Please check your Steam trade offers.</p>
+                }
+                else if (Model.Status == TradeStatus.WaitingForBuyerConfirmation)
+                {
+                    <div class="alert alert-info">
+                        <h6>Trade Offer Received</h6>
+                        <p>Please check your Steam inventory to confirm you have received the item.</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <form asp-controller="Trade" asp-action="ConfirmReceipt" method="post" class="d-inline">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button type="submit" class="btn btn-success">Confirm Receipt</button>
+                        </form>
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#reportProblemModal">
+                            Report Problem
+                        </button>
+                    </div>
+                }
+                else if (Model.Status == TradeStatus.Disputed)
+                {
+                    <p>You have reported a problem with this trade. An admin will review your case.</p>
+                }
+                else if (Model.Status == TradeStatus.Completed)
+                {
+                    <p>Trade has been completed successfully.</p>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Report Problem Modal -->
+    <div class="modal fade" id="reportProblemModal" tabindex="-1" aria-labelledby="reportProblemModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reportProblemModalLabel">Report Problem</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form asp-controller="Trade" asp-action="DisputeTrade" method="post">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Describe the problem</label>
+                            <textarea class="form-control" id="reason" name="reason" rows="3" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Submit Report</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('createOfferForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: new FormData(this)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Open the trade link in a popup
+                    window.open(data.tradeLink, 'Steam Trade', 'width=800,height=600');
+                    
+                    // Add red border to the card
+                    this.closest('.card').classList.add('border-danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
+} 

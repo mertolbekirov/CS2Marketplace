@@ -1,0 +1,58 @@
+@model IEnumerable<CS2Marketplace.Models.Trade>
+@{
+    ViewData["Title"] = "Trade Disputes";
+}
+
+<div class="container mt-4">
+    <h2>Trade Disputes</h2>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Trade ID</th>
+                    <th>Item</th>
+                    <th>Seller</th>
+                    <th>Buyer</th>
+                    <th>Amount</th>
+                    <th>Disputed At</th>
+                    <th>Reason</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var trade in Model)
+                {
+                    <tr>
+                        <td>@trade.Id</td>
+                        <td>@trade.ItemName</td>
+                        <td>@trade.Seller.Username</td>
+                        <td>@trade.Buyer.Username</td>
+                        <td>$@trade.Amount.ToString("F2")</td>
+                        <td>@trade.DisputedAt?.ToString("g")</td>
+                        <td>@trade.DisputeReason</td>
+                        <td>
+                            <a asp-action="DisputeDetails" asp-route-id="@trade.Id" class="btn btn-primary btn-sm">Review</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div> 

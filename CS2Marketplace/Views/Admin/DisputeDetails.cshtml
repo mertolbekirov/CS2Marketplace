@@ -1,0 +1,97 @@
+@model CS2Marketplace.Models.Trade
+@{
+    ViewData["Title"] = "Dispute Details";
+}
+
+<div class="container mt-4">
+    <h2>Dispute Details - Trade #@Model.Id</h2>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Trade Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Item Details</h6>
+                    <p><strong>Item:</strong> @Model.ItemName</p>
+                    @if (!string.IsNullOrEmpty(Model.ItemWear))
+                    {
+                        <p><strong>Float:</strong> @Model.ItemWear</p>
+                    }
+                    <p><strong>Price:</strong> $@Model.Amount.ToString("F2")</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Participants</h6>
+                    <p><strong>Seller:</strong> @Model.Seller.Username</p>
+                    <p><strong>Buyer:</strong> @Model.Buyer.Username</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Dispute Information</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Reported On:</strong> @Model.DisputedAt?.ToString("g")</p>
+            <p><strong>Reason:</strong> @Model.DisputeReason</p>
+            @if (!string.IsNullOrEmpty(Model.AdminNotes))
+            {
+                <p><strong>Admin Notes:</strong> @Model.AdminNotes</p>
+            }
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Resolve Dispute</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="ResolveDispute" asp-route-id="@Model.Id" method="post">
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="refundBuyer" name="refundBuyer" value="true">
+                        <label class="form-check-label" for="refundBuyer">
+                            Refund the buyer
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="resolution" class="form-label">Resolution Notes</label>
+                    <textarea class="form-control" id="resolution" name="resolution" rows="3" required></textarea>
+                    <div class="form-text">Explain how you resolved the dispute and why.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="adminNotes" class="form-label">Admin Notes</label>
+                    <textarea class="form-control" id="adminNotes" name="adminNotes" rows="3"></textarea>
+                    <div class="form-text">Internal notes about the dispute (not visible to users).</div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Resolve Dispute</button>
+                    <a asp-action="Disputes" class="btn btn-secondary">Back to List</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div> 

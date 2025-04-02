@@ -11,6 +11,7 @@ using System.Linq;
 using System;
 using Microsoft.Extensions.Caching.Memory;
 using CS2Marketplace.Models.ViewModels;
+using Stripe;
 
 namespace CS2Marketplace.Controllers
 {
@@ -203,111 +204,86 @@ namespace CS2Marketplace.Controllers
 
         // POST: /Marketplace/Purchase/{listingId}
         [HttpPost]
-        public async Task<IActionResult> Purchase(int listingId)
+        public async Task<IActionResult> Purchase(int id)
         {
-            // Check if user is signed in
-            string steamIdStr = HttpContext.Session.GetString("SteamId");
-            if (string.IsNullOrEmpty(steamIdStr))
+            string steamId = HttpContext.Session.GetString("SteamId");
+            if (string.IsNullOrEmpty(steamId))
                 return RedirectToAction("SignIn", "Auth");
 
-            // Get the current user and listing
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamIdStr);
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
+            if (user == null)
+                return RedirectToAction("SignIn", "Auth");
+
+            // Check if user has configured their trade link
+            if (string.IsNullOrEmpty(user.TradeLink))
+            {
+                TempData["Error"] = "Please set up your trade link in your profile before purchasing items.";
+                return RedirectToAction("Profile", "Home");
+            }
+
             var listing = await _dbContext.MarketplaceListings
                 .Include(l => l.Seller)
                 .Include(l => l.Item)
-                .FirstOrDefaultAsync(l => l.Id == listingId);
-        
-            if (user == null || listing == null)
+                .FirstOrDefaultAsync(l => l.Id == id);
+
+            if (listing == null)
                 return NotFound();
-        
-            // Check if the listing is available
+
+            // Check if the listing is still available
             if (listing.ListingStatus != ListingStatus.Active)
             {
                 TempData["Error"] = "This item is no longer available.";
                 return RedirectToAction("Index");
             }
-        
-            // Check if the user has enough balance
+
+            // Check if user has enough balance
             if (user.Balance < listing.Price)
             {
-                TempData["Error"] = "You don't have enough balance to purchase this item.";
-                return RedirectToAction("Index", "Wallet");
-            }
-        
-            // Prevent users from buying their own listings
-            if (listing.SellerId == user.Id)
-            {
-                TempData["Error"] = "You cannot purchase your own listing.";
+                TempData["Error"] = "Insufficient balance. Please add funds to your wallet.";
                 return RedirectToAction("Index");
             }
 
-            // Begin a database transaction to ensure all operations succeed together
-            using (var dbTransaction = await _dbContext.Database.BeginTransactionAsync())
+            // Create a new trade
+            var trade = new Trade
             {
-                try
-                {
-                    // Deduct the user's balance
-                    user.Balance -= listing.Price;
-                
-                    // Create a wallet transaction to record the payment
-                    var transaction = new WalletTransaction
-                    {
-                        UserId = user.Id,
-                        Amount = -listing.Price,
-                        Type = WalletTransactionType.Withdrawal,
-                        Description = $"Purchase of {listing.Item.Name}",
-                        CreatedAt = DateTime.UtcNow,
-                        Status = WalletTransactionStatus.Completed,
-                        ReferenceId = listing.Id.ToString()
-                    };
-                    _dbContext.WalletTransactions.Add(transaction);
+                ListingId = listing.Id,
+                BuyerId = user.Id,
+                SellerId = listing.SellerId,
+                ItemId = listing.ItemId.ToString(),
+                ItemName = listing.Item.Name,
+                ItemWear = listing.FloatValue?.ToString("0.######"),  // Convert float value to string with 6 decimal places
+                Amount = listing.Price,
+                Status = TradeStatus.WaitingForSeller,
+                StatusMessage = "Waiting for seller to send trade offer...",
+                CreatedAt = DateTime.UtcNow,
+                TradeOfferUrl = user.TradeLink
+            };
+            _dbContext.Trades.Add(trade);
+            await _dbContext.SaveChangesAsync();
 
-                    // Create a wallet transaction for the seller
-                    var sellerTransaction = new WalletTransaction
-                    {
-                        UserId = listing.SellerId,
-                        Amount = listing.Price,
-                        Type = WalletTransactionType.Deposit,
-                        Description = $"Sale of {listing.Item.Name}",
-                        CreatedAt = DateTime.UtcNow,
-                        Status = WalletTransactionStatus.Pending,
-                        ReferenceId = listing.Id.ToString()
-                    };
-                    _dbContext.WalletTransactions.Add(sellerTransaction);
-                
-                    // Create a new trade
-                    var trade = new Trade
-                    {
-                        SellerId = listing.SellerId,
-                        BuyerId = user.Id,
-                        ListingId = listing.Id,
-                        ItemId = listing.ItemId.ToString(),
-                        ItemName = listing.Item.Name,
-                        ItemWear = listing.FloatValue.HasValue ? listing.FloatValue.Value.ToString("0.######") : "Unknown",
-                        Amount = listing.Price,
-                        Status = TradeStatus.WaitingForSeller,
-                        StatusMessage = "Waiting for seller to confirm",
-                        CreatedAt = DateTime.UtcNow,
-                        IsPaid = true
-                    };
-                    _dbContext.Trades.Add(trade);
-                
-                    // Update the listing status
-                    listing.ListingStatus = ListingStatus.Sold;
-                
-                    await _dbContext.SaveChangesAsync();
-                    await dbTransaction.CommitAsync();
-                
-                    TempData["Success"] = $"You have successfully purchased {listing.Item.Name}! The seller will send a trade offer.";
-                    return RedirectToAction("Details", "Trade", new { id = trade.Id });
-                }
-                catch (Exception ex)
-                {
-                    await dbTransaction.RollbackAsync();
-                    TempData["Error"] = $"An error occurred during purchase: {ex.Message}";
-                    return RedirectToAction("Details", new { id = listingId });
-                }
-            }
+            // Update user balance
+            user.Balance -= listing.Price;
+
+            // Create wallet transaction for the purchase
+            var transaction = new WalletTransaction
+            {
+                UserId = user.Id,
+                Amount = -listing.Price,
+                Type = WalletTransactionType.Withdrawal,
+                Description = $"Purchase: {listing.Item.Name}",
+                CreatedAt = DateTime.UtcNow,
+                Status = WalletTransactionStatus.Completed,
+                ReferenceId = trade.Id.ToString(),
+            };
+
+            // Mark listing as sold
+            listing.ListingStatus = ListingStatus.Sold;
+
+            _dbContext.WalletTransactions.Add(transaction);
+            await _dbContext.SaveChangesAsync();
+
+            TempData["Success"] = "Purchase successful! Please wait for the seller to send you a trade offer.";
+            return RedirectToAction("Details", "Trade", new { id = trade.Id });
         }
     }
 }

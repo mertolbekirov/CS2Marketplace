@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using CS2Marketplace.Data;
+using CS2Marketplace.Services;
 
 namespace CS2Marketplace.Filters
 {
@@ -15,7 +16,7 @@ namespace CS2Marketplace.Filters
     {
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
-            var steamVerificationService = context.HttpContext.RequestServices.GetRequiredService<ISteamVerificationService>();
+            var userService = context.HttpContext.RequestServices.GetRequiredService<IUserService>();
             var dbContext = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
             
             // Get SteamId from session
@@ -34,7 +35,7 @@ namespace CS2Marketplace.Filters
                 return;
             }
 
-            var isEligible = await steamVerificationService.VerifyUserEligibilityAsync(user);
+            var isEligible = await userService.VerifyUserSellerEligibilityAsync(user);
             if (!isEligible)
             {
                 context.Result = new BadRequestObjectResult(new

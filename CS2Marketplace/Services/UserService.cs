@@ -9,12 +9,12 @@ namespace CS2Marketplace.Services
     public class UserService : IUserService
     {
         private readonly ApplicationDbContext _dbContext;
-        private readonly ISteamVerificationService _steamVerificationService;
+        private readonly SteamApiService _steamApiService;
 
-        public UserService(ApplicationDbContext dbContext, ISteamVerificationService steamVerificationService)
+        public UserService(ApplicationDbContext dbContext, SteamApiService steamApiService)
         {
             _dbContext = dbContext;
-            _steamVerificationService = steamVerificationService;
+            _steamApiService = steamApiService;
         }
 
         public async Task<User> GetUserBySteamIdAsync(string steamId)
@@ -60,9 +60,22 @@ namespace CS2Marketplace.Services
             }
         }
 
-        public async Task<bool> VerifyUserEligibilityAsync(User user)
+        public async Task<bool> VerifyUserSellerEligibilityAsync(User user)
         {
-            return await _steamVerificationService.VerifyUserEligibilityAsync(user);
+            if (string.IsNullOrEmpty(user.SteamApiKey))
+            {
+                user.VerificationMessage = "No API key configured";
+                return false;
+            }
+
+            // Check if verification was done recently (within last 24 hours)
+            if (user.LastVerificationCheck.HasValue &&
+                (DateTime.UtcNow - user.LastVerificationCheck.Value).TotalHours < 24)
+            {
+                return user.IsEligibleForTrading;
+            }
+
+            return await _steamApiService.IsSteamUserAbleToTrade(user);
         }
     }
 } 

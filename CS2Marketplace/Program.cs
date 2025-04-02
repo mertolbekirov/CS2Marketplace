@@ -26,7 +26,6 @@ builder.Services.AddScoped<SteamApiService>();
 builder.Services.AddTransient<PaymentService>();
 
 builder.Services.AddHttpClient();
-builder.Services.AddScoped<ISteamVerificationService, SteamVerificationService>();
 
 // Add MemoryCache, MVC controllers, and session support.
 builder.Services.AddMemoryCache();

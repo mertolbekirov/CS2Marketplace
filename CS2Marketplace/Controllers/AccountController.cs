@@ -53,7 +53,7 @@ namespace CS2Marketplace.Controllers
             if (!isApiKeyRemoved)
             {
                 var user = await _userService.GetUserBySteamIdAsync(steamId);
-                var isEligible = await _userService.VerifyUserEligibilityAsync(user);
+                var isEligible = await _userService.VerifyUserSellerEligibilityAsync(user);
                 if (!isEligible)
                 {
                     TempData["Message"] += " However, your account is not eligible for trading. Please check your API key and Steam Account status.";

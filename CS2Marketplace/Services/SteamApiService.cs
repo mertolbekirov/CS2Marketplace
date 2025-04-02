@@ -6,7 +6,10 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using CS2Marketplace.Data;
+using CS2Marketplace.Models;
 using CS2Marketplace.Models.ViewModels;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace CS2Marketplace.Services
@@ -15,11 +18,13 @@ namespace CS2Marketplace.Services
     {
         private readonly HttpClient _httpClient;
         private readonly IMemoryCache _cache;
+        private readonly ApplicationDbContext _dbContext;
 
-        public SteamApiService(HttpClient httpClient, IMemoryCache memoryCache)
+        public SteamApiService(HttpClient httpClient, IMemoryCache memoryCache, ApplicationDbContext dbContext)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _cache = memoryCache ?? throw new ArgumentNullException(nameof(memoryCache));
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
 
         // Fetches the Steam user's profile (display name and avatar) using GetPlayerSummaries.
@@ -165,6 +170,55 @@ namespace CS2Marketplace.Services
             return inventoryItems;
         }
 
+        public async Task<bool> IsSteamUserAbleToTrade(User user)
+        {
+            try
+            {
+                // Check if user is trade banned
+                var response = await _httpClient.GetAsync(
+                    $"https://api.steampowered.com/ISteamUser/GetPlayerBans/v1/?key={user.SteamApiKey}&steamids={user.SteamId}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    user.IsEligibleForTrading = false;
+                    user.VerificationMessage = "Could not get GetPlayerBans response";
+                    user.LastVerificationCheck = DateTime.UtcNow;
+                    return false;
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<SteamPlayerBansResponse>(content);
+
+                if (result?.players == null || result.players.Length == 0)
+                {
+                    user.IsEligibleForTrading = false;
+                    user.VerificationMessage = "Could not find user information";
+                    user.LastVerificationCheck = DateTime.UtcNow;
+                    return false;
+                }
+
+                var player = result.players[0];
+                var isEligible = player.EconomyBan == "none" && !player.VACBanned && !player.CommunityBanned;
+
+                user.IsEligibleForTrading = isEligible;
+                user.VerificationMessage = isEligible ?
+                    "User is eligible for trading" :
+                    $"User has restrictions: {(player.EconomyBan != "none" ? "Economy Ban, " : "")}{(player.VACBanned ? "VAC Ban, " : "")}{(player.CommunityBanned ? "Community Ban" : "")}";
+                user.LastVerificationCheck = DateTime.UtcNow;
+
+                _dbContext.SaveChanges();
+
+                return isEligible;
+            }
+            catch (Exception ex)
+            {
+                user.IsEligibleForTrading = false;
+                user.VerificationMessage = "Error verifying eligibility";
+                user.LastVerificationCheck = DateTime.UtcNow;
+                return false;
+            }
+        }
+
         /// <summary>
         /// Calls the csfloat API for a single inspect URL using GET.
         /// Caches the result using the inspect URL as the key.
@@ -246,11 +300,28 @@ namespace CS2Marketplace.Services
         }
     }
 
-    // DTO for Steam user profile.
+    // DTOs
+
     public class SteamUserProfile
     {
         public string SteamId { get; set; } = string.Empty;
         public string PersonaName { get; set; } = string.Empty;
         public string AvatarUrl { get; set; } = string.Empty;
+    }
+
+    public class SteamPlayerBansResponse
+    {
+        public SteamPlayerBan[] players { get; set; }
+    }
+
+    public class SteamPlayerBan
+    {
+        public string SteamId { get; set; }
+        public bool CommunityBanned { get; set; }
+        public bool VACBanned { get; set; }
+        public int NumberOfVACBans { get; set; }
+        public int DaysSinceLastBan { get; set; }
+        public int NumberOfGameBans { get; set; }
+        public string EconomyBan { get; set; }
     }
 }

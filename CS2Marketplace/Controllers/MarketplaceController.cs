@@ -12,6 +12,7 @@ using System;
 using Microsoft.Extensions.Caching.Memory;
 using CS2Marketplace.Models.ViewModels;
 using Stripe;
+using CS2Marketplace.Filters;
 
 namespace CS2Marketplace.Controllers
 {
@@ -102,6 +103,7 @@ namespace CS2Marketplace.Controllers
 
         // POST: /Marketplace/CreateListing
         [HttpPost]
+        [SellerEligibilityFilter]
         public async Task<IActionResult> CreateListing(string assetId, decimal price)
         {
             // Ensure the user is signed in

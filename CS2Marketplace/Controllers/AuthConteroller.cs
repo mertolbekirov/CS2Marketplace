@@ -57,7 +57,6 @@ namespace CS2Marketplace.Controllers
                     Username = profile != null ? profile.PersonaName : "Unknown",
                     AvatarUrl = profile != null ? profile.AvatarUrl : "",
                     Email = "",
-                    APIKey = "",
                     Balance = 0.0m,
                     CreatedAt = DateTime.UtcNow,
                     LastLogin = DateTime.UtcNow

@@ -5,16 +5,19 @@ using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using CS2Marketplace.Models;
 using System;
+using CS2Marketplace.Services.Interfaces;
 
 namespace CS2Marketplace.Controllers
 {
     public class AccountController : Controller
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly ISteamVerificationService steamVerificationService;
 
-        public AccountController(ApplicationDbContext dbContext)
+        public AccountController(ApplicationDbContext dbContext, ISteamVerificationService steamVerificationService)
         {
             _dbContext = dbContext;
+            this.steamVerificationService = steamVerificationService;
         }
 
         // GET: /Account/Profile
@@ -79,9 +82,21 @@ namespace CS2Marketplace.Controllers
             user.SteamApiKey = steamApiKey;
             await _dbContext.SaveChangesAsync();
 
-            TempData["Message"] = string.IsNullOrEmpty(steamApiKey) 
-                ? "Your Steam API Key has been removed." 
+            var isApiKeyRemoved = string.IsNullOrEmpty(steamApiKey);
+
+            TempData["Message"] = isApiKeyRemoved
+                ? "Your Steam API Key has been removed."
                 : "Your Steam API Key has been updated successfully.";
+
+            if (!isApiKeyRemoved)
+            {
+                var isApiKeyCorrectandIsUserEligibleForTrade = await steamVerificationService.VerifyUserEligibilityAsync(user);
+                if (!isApiKeyCorrectandIsUserEligibleForTrade)
+                {
+                    TempData["Message"] += " However, your account is not eligible for trading. Please check your API key and Steam Account status.";
+                }
+            }
+
             return RedirectToAction("Profile");
         }
 

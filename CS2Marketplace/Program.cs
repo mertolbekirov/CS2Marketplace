@@ -1,5 +1,6 @@
 using CS2Marketplace.Data;
 using CS2Marketplace.Services;
+using CS2Marketplace.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Stripe;
 using System.Globalization;
@@ -36,6 +37,7 @@ builder.Services.AddSingleton<SteamFloatFetcher>(sp =>
     return fetcher;
 });
 builder.Services.AddHttpClient();
+builder.Services.AddScoped<ISteamVerificationService, SteamVerificationService>();
 
 // Add MemoryCache, MVC controllers, and session support.
 builder.Services.AddMemoryCache();

@@ -10,7 +10,6 @@ namespace CS2Marketplace.Models
         public string Username { get; set; }
         public string AvatarUrl { get; set; }
         public string? Email { get; set; }
-        public string? APIKey { get; set; }
         public string? TradeLink { get; set; }  // Full Steam trade URL
         public decimal Balance { get; set; } = 0.0m;
         public DateTime CreatedAt { get; set; }
@@ -22,6 +21,11 @@ namespace CS2Marketplace.Models
         public bool StripeConnectEnabled { get; set; }
         public string? StripeConnectOnboardingLink { get; set; }
         public string? StripeConnectDashboardLink { get; set; }
+
+        // Seller verification fields
+        public bool IsEligibleForTrading { get; set; }
+        public DateTime? LastVerificationCheck { get; set; }
+        public string? VerificationMessage { get; set; }
 
         // Navigation properties
         public ICollection<MarketplaceListing> Listings { get; set; }

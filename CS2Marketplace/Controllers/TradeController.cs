@@ -15,16 +15,13 @@ namespace CS2Marketplace.Controllers
     public class TradeController : Controller
     {
         private readonly ApplicationDbContext _dbContext;
-        private readonly SteamTradeService _tradeService;
         private readonly IConfiguration _configuration;
 
         public TradeController(
             ApplicationDbContext dbContext,
-            SteamTradeService tradeService,
             IConfiguration configuration)
         {
             _dbContext = dbContext;
-            _tradeService = tradeService;
             _configuration = configuration;
         }
 

@@ -23,7 +23,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddTransient<SteamAuthService>();
 builder.Services.AddScoped<SteamApiService>();
 builder.Services.AddTransient<PaymentService>();
-builder.Services.AddScoped<SteamTradeService>();
 
 // Register the GC-based float fetcher (consider it as a singleton if you want to keep its connection alive)
 builder.Services.AddSingleton<SteamFloatFetcher>(sp =>

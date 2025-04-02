@@ -25,17 +25,6 @@ builder.Services.AddTransient<SteamAuthService>();
 builder.Services.AddScoped<SteamApiService>();
 builder.Services.AddTransient<PaymentService>();
 
-// Register the GC-based float fetcher (consider it as a singleton if you want to keep its connection alive)
-builder.Services.AddSingleton<SteamFloatFetcher>(sp =>
-{
-    // Supply valid Steam credentials (or read from configuration)
-    string username = builder.Configuration["Steam:Username"];
-    string password = builder.Configuration["Steam:Password"];
-    var fetcher = new SteamFloatFetcher(username, password);
-    // Optionally, you might start the connection here asynchronously (or call it later when needed)
-    Task.Run(async () => await fetcher.ConnectAndLogOnAsync()).Wait();
-    return fetcher;
-});
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<ISteamVerificationService, SteamVerificationService>();
 
@@ -44,9 +33,6 @@ builder.Services.AddMemoryCache();
 builder.Services.AddControllersWithViews();
 builder.Services.AddSession();
 StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
-
-// Add background service for checking trade status
-builder.Services.AddHostedService<TradeStatusCheckService>();
 
 var app = builder.Build();
 

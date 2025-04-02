@@ -7,7 +7,6 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using CS2Marketplace.Models.ViewModels;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace CS2Marketplace.Services
@@ -15,18 +14,12 @@ namespace CS2Marketplace.Services
     public class SteamApiService
     {
         private readonly HttpClient _httpClient;
-        private readonly string _csfloatApiKey;
         private readonly IMemoryCache _cache;
 
-        public SteamApiService(HttpClient httpClient, IConfiguration configuration, IMemoryCache memoryCache)
+        public SteamApiService(HttpClient httpClient, IMemoryCache memoryCache)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _cache = memoryCache ?? throw new ArgumentNullException(nameof(memoryCache));
-            _csfloatApiKey = configuration["CsFloat:ApiKey"];
-            if (string.IsNullOrEmpty(_csfloatApiKey))
-            {
-                throw new ArgumentException("CsFloat ApiKey is not set in configuration.");
-            }
         }
 
         // Fetches the Steam user's profile (display name and avatar) using GetPlayerSummaries.

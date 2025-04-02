@@ -9,6 +9,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Retrieve connection string from configuration
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables(); // Enables Azure overrides
+
 // Register the DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
@@ -63,5 +69,11 @@ var cultureInfo = new CultureInfo("en-US");
 cultureInfo.NumberFormat.CurrencySymbol = "€";
 CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
 CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+}
 
 app.Run();

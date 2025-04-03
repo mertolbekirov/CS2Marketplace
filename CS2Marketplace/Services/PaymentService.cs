@@ -231,74 +231,55 @@ namespace CS2Marketplace.Services
         /// </summary>
         public async Task<(bool success, string errorMessage)> ProcessWithdrawalAsync(User user, decimal amount, string currency = "eur")
         {
-            if (!user.StripeConnectEnabled || string.IsNullOrEmpty(user.StripeConnectAccountId))
-            {
-                return (false, "User has not completed Stripe Connect onboarding");
-            }
+            if (string.IsNullOrEmpty(user.StripeConnectAccountId))
+                return (false, "User has no connected Stripe account.");
 
-            var amountInCents = (long)(amount * 100);
-            
             try
             {
-                // Create a Transfer to the connected account
+                var service = new TransferService();
                 var options = new TransferCreateOptions
                 {
-                    Amount = amountInCents,
+                    Amount = (long)(amount * 100), // Convert to cents
                     Currency = currency,
-                    Destination = user.StripeConnectAccountId
+                    Destination = user.StripeConnectAccountId,
+                    Description = $"Withdrawal for {user.Username}"
                 };
 
-                var service = new TransferService();
                 Transfer transfer = await service.CreateAsync(options);
-                
-                if (transfer == null || string.IsNullOrEmpty(transfer.Id))
+
+                // Check transfer status based on metadata
+                if (!transfer.Reversed)
                 {
-                    return (false, "Failed to create transfer: No transfer ID received");
+                    // Create a withdrawal transaction
+                    var withdrawal = new WalletTransaction
+                    {
+                        UserId = user.Id,
+                        Amount = -amount, // Negative amount for withdrawal
+                        Type = WalletTransactionType.Withdrawal,
+                        Description = $"Withdrawal to Stripe account",
+                        Status = WalletTransactionStatus.Completed,
+                        CreatedAt = DateTime.UtcNow,
+                        ReferenceId = transfer.Id
+                    };
+
+                    _dbContext.WalletTransactions.Add(withdrawal);
+                    user.Balance -= amount;
+                    await _dbContext.SaveChangesAsync();
+                    
+                    return (true, "Withdrawal processed successfully.");
                 }
-
-                // Record the transaction
-                var transaction = new WalletTransaction
+                else // transfer.Reversed is true
                 {
-                    UserId = int.Parse(user.Id.ToString()),
-                    Amount = amount,
-                    Type = WalletTransactionType.Withdrawal,
-                    Description = "Stripe payout",
-                    CreatedAt = DateTime.UtcNow,
-                    Status = WalletTransactionStatus.Pending,
-                    ReferenceId = transfer.Id
-                };
-
-                user.Balance -= amount;
-
-                _dbContext.WalletTransactions.Add(transaction);
-                await _dbContext.SaveChangesAsync();
-                
-                return (true, null);
+                    return (false, "Withdrawal failed - transfer was reversed.");
+                }
             }
-            catch (StripeException ex)
+            catch (StripeException e)
             {
-                // Handle specific Stripe errors
-                string errorMessage = ex.Message;
-                if (ex.StripeError?.Type == "card_error")
-                {
-                    errorMessage = "Card error: " + ex.StripeError.Message;
-                }
-                else if (ex.StripeError?.Type == "invalid_request_error")
-                {
-                    errorMessage = "Invalid request: " + ex.StripeError.Message;
-                }
-                else if (ex.StripeError?.Type == "api_error")
-                {
-                    errorMessage = "Stripe API error: " + ex.StripeError.Message;
-                }
-
-                Console.WriteLine($"Stripe withdrawal error: {errorMessage}");
-                return (false, errorMessage);
+                return (false, $"Stripe error: {e.Message}");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Unexpected withdrawal error: {ex.Message}");
-                return (false, "An unexpected error occurred while processing the withdrawal");
+                return (false, "System error processing withdrawal.");
             }
         }
 
@@ -321,47 +302,6 @@ namespace CS2Marketplace.Services
                 _dbContext.Users.Update(user);
                 await _dbContext.SaveChangesAsync();
             }
-        }
-
-        /// <summary>
-        /// Handles Stripe webhook events for transfer status updates.
-        /// </summary>
-        public async Task HandleTransferWebhookAsync(string eventType, string transferId)
-        {
-            var transaction = await _dbContext.WalletTransactions
-                .FirstOrDefaultAsync(t => t.ReferenceId == transferId && t.Type == WalletTransactionType.Withdrawal);
-
-            if (transaction == null)
-            {
-                return;
-            }
-
-            switch (eventType)
-            {
-                case "transfer.paid":
-                    transaction.Status = WalletTransactionStatus.Completed;
-                    break;
-                case "transfer.failed":
-                    transaction.Status = WalletTransactionStatus.Failed;
-                    // If the transfer failed, we should refund the user's balance
-                    var user = await _dbContext.Users.FindAsync(transaction.UserId);
-                    if (user != null)
-                    {
-                        user.Balance += transaction.Amount;
-                    }
-                    break;
-                case "transfer.canceled":
-                    transaction.Status = WalletTransactionStatus.Failed;
-                    // If the transfer was cancelled, we should refund the user's balance
-                    user = await _dbContext.Users.FindAsync(transaction.UserId);
-                    if (user != null)
-                    {
-                        user.Balance += transaction.Amount;
-                    }
-                    break;
-            }
-
-            await _dbContext.SaveChangesAsync();
         }
 
         /// <summary>

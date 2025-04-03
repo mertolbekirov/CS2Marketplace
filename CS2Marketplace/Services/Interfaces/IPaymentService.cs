@@ -1,4 +1,5 @@
-﻿using CS2Marketplace.Models;
+﻿using System.Threading.Tasks;
+using CS2Marketplace.Models;
 using Stripe.Checkout;
 
 namespace CS2Marketplace.Services.Interfaces
@@ -15,8 +16,6 @@ namespace CS2Marketplace.Services.Interfaces
         Task<decimal?> ConfirmDepositSessionAsync(string sessionId);
         Task<(bool success, string errorMessage)> ProcessWithdrawalAsync(User user, decimal amount, string currency = "eur");
         Task UpdateStripeConnectAccountStatusAsync(string accountId);
-
-        Task HandleTransferWebhookAsync(string eventType, string transferId);
 
         Task<bool> CreateTestChargeForAvailableBalance(decimal amount);
     }

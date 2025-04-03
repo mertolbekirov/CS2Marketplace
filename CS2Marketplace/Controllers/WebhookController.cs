@@ -31,7 +31,7 @@ namespace CS2Marketplace.Controllers
 
             try
             {
-                if (stripeEvent.Type == "transfer.updated")
+                if (stripeEvent.Type == "transfer.created")
                 {
                     var transfer = stripeEvent.Data.Object as Transfer;
                     if (transfer != null)

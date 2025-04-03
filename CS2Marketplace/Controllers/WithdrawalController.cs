@@ -72,7 +72,6 @@ namespace CS2Marketplace.Controllers
             if (success)
             {
                 // Update user's balance only after successful withdrawal processing
-                user.Balance -= amount;
                 await _dbContext.SaveChangesAsync();
                 TempData["Message"] = $"Withdrawal of {amount:C} has been initiated. The transaction is pending and will be processed within 1-3 business days.";
             }

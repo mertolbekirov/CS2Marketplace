@@ -15,14 +15,16 @@ namespace CS2Marketplace.Services
     {
         private readonly IConfiguration _configuration;
         private readonly ApplicationDbContext _dbContext;
+        private readonly IUserService _userService;
         internal readonly bool _isTestMode;
 
-        public PaymentService(IConfiguration configuration, ApplicationDbContext dbContext)
+        public PaymentService(IConfiguration configuration, ApplicationDbContext dbContext, IUserService userService)
         {
             _configuration = configuration;
             _dbContext = dbContext;
             StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
             _isTestMode = _configuration["Stripe:SecretKey"].StartsWith("sk_test_");
+            _userService = userService;
         }
 
         /// <summary>
@@ -147,8 +149,9 @@ namespace CS2Marketplace.Services
         /// <summary>
         /// Creates a Stripe Checkout Session for a deposit.
         /// </summary>
-        public async Task<Session> CreateDepositSessionAsync(User user, decimal amount, string currency = "eur")
+        public async Task<Session> CreateDepositSessionAsync(string steamId, decimal amount, string currency = "eur")
         {
+            var user = await _userService.GetUserBySteamIdAsync(steamId);
             string customerId = await GetOrCreateStripeCustomerAsync(user);
             var amountInCents = (long)(amount * 100);
 
@@ -265,7 +268,7 @@ namespace CS2Marketplace.Services
                 };
 
                 user.Balance -= amount;
-                
+
                 _dbContext.WalletTransactions.Add(transaction);
                 await _dbContext.SaveChangesAsync();
                 

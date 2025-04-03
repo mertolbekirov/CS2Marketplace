@@ -32,8 +32,7 @@ namespace CS2Marketplace.Controllers
             // Retrieve the current user from your database (e.g., via session SteamId)
             string steamId = HttpContext.Session.GetString("SteamId");
 
-
-            Session session = await _paymentService.CreateDepositSessionAsync(user, amount);
+            Session session = await _paymentService.CreateDepositSessionAsync(steamId, amount);
             return Redirect(session.Url);
         }
 

@@ -8,7 +8,7 @@ namespace CS2Marketplace.Services.Interfaces
         Task<string> GetOrCreateStripeCustomerAsync(User user);
         Task<string> CreateStripeConnectAccountAsync(User user);
 
-        Task<Session> CreateDepositSessionAsync(User user, decimal amount, string currency = "eur");
+        Task<Session> CreateDepositSessionAsync(string steamId, decimal amount, string currency = "eur");
 
         Task<decimal?> ConfirmDepositSessionAsync(string sessionId);
         Task<(bool success, string errorMessage)> ProcessWithdrawalAsync(User user, decimal amount, string currency = "eur");

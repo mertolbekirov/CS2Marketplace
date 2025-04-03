@@ -23,9 +23,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Register our custom services
 builder.Services.AddTransient<SteamAuthService>();
 builder.Services.AddScoped<SteamApiService>();
-builder.Services.AddTransient<PaymentService>();
+builder.Services.AddTransient<IPaymentService,PaymentService>();
 builder.Services.AddTransient<IUserService,UserService>();
 builder.Services.AddTransient<IMarketplaceService,MarketplaceService>();
+builder.Services.AddTransient<IStripeConnectService, StripeConnectService>();
 
 builder.Services.AddHttpClient();
 

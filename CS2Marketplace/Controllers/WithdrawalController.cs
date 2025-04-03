@@ -4,15 +4,16 @@ using System.Threading.Tasks;
 using CS2Marketplace.Data;
 using Microsoft.EntityFrameworkCore;
 using CS2Marketplace.Models;
+using CS2Marketplace.Services.Interfaces;
 
 namespace CS2Marketplace.Controllers
 {
     public class WithdrawalController : Controller
     {
-        private readonly PaymentService _paymentService;
+        private readonly IPaymentService _paymentService;
         private readonly ApplicationDbContext _dbContext;
 
-        public WithdrawalController(PaymentService paymentService, ApplicationDbContext dbContext)
+        public WithdrawalController(IPaymentService paymentService, ApplicationDbContext dbContext)
         {
             _paymentService = paymentService;
             _dbContext = dbContext;

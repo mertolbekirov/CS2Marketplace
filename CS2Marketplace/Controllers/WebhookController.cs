@@ -4,15 +4,16 @@ using Stripe;
 using System;
 using System.Threading.Tasks;
 using CS2Marketplace.Services;
+using CS2Marketplace.Services.Interfaces;
 
 namespace CS2Marketplace.Controllers
 {
     public class WebhookController : Controller
     {
-        private readonly PaymentService _paymentService;
+        private readonly IPaymentService _paymentService;
         private readonly string _webhookSecret;
 
-        public WebhookController(PaymentService paymentService, IConfiguration configuration)
+        public WebhookController(IPaymentService paymentService, IConfiguration configuration)
         {
             _paymentService = paymentService;
             _webhookSecret = configuration["Stripe:WebhookSecret"];

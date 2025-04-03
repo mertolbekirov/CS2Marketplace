@@ -5,6 +5,8 @@ namespace CS2Marketplace.Services.Interfaces
 {
     public interface IPaymentService
     {
+        bool IsTestMode { get; init; }
+
         Task<string> GetOrCreateStripeCustomerAsync(User user);
         Task<string> CreateStripeConnectAccountAsync(User user);
 

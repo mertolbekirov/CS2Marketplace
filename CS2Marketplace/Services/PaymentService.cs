@@ -16,14 +16,15 @@ namespace CS2Marketplace.Services
         private readonly IConfiguration _configuration;
         private readonly ApplicationDbContext _dbContext;
         private readonly IUserService _userService;
-        internal readonly bool _isTestMode;
+
+        public bool IsTestMode { get; init; }
 
         public PaymentService(IConfiguration configuration, ApplicationDbContext dbContext, IUserService userService)
         {
             _configuration = configuration;
             _dbContext = dbContext;
             StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
-            _isTestMode = _configuration["Stripe:SecretKey"].StartsWith("sk_test_");
+            IsTestMode = _configuration["Stripe:SecretKey"].StartsWith("sk_test_");
             _userService = userService;
         }
 
@@ -314,7 +315,7 @@ namespace CS2Marketplace.Services
             {
                 user.StripeConnectEnabled = account.ChargesEnabled && account.PayoutsEnabled;
                 // Use different dashboard URLs for test and live mode
-                user.StripeConnectDashboardLink = _isTestMode
+                user.StripeConnectDashboardLink = IsTestMode
                     ? $"https://dashboard.stripe.com/{accountId}/test/dashboard"
                     : $"https://connect.stripe.com/app/express#acct_{accountId}/overview";
                 _dbContext.Users.Update(user);
@@ -368,7 +369,7 @@ namespace CS2Marketplace.Services
         /// </summary>
         public async Task<bool> CreateTestChargeForAvailableBalance(decimal amount)
         {
-            if (!_isTestMode)
+            if (!IsTestMode)
                 return false;
 
             var options = new ChargeCreateOptions

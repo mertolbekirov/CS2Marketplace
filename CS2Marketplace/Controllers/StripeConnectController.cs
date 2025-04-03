@@ -2,86 +2,59 @@ using Microsoft.AspNetCore.Mvc;
 using CS2Marketplace.Services;
 using System.Threading.Tasks;
 using CS2Marketplace.Data;
-using Microsoft.EntityFrameworkCore;
-using System;
+using CS2Marketplace.Services.Interfaces;
+using CS2Marketplace.Filters;
+using Microsoft.AspNetCore.Http;
 
 namespace CS2Marketplace.Controllers
 {
+    [RequireAuthentication]
     public class StripeConnectController : Controller
     {
-        private readonly PaymentService _paymentService;
-        private readonly ApplicationDbContext _dbContext;
+        private readonly IStripeConnectService _stripeConnectService;
+        private readonly IUserService _userService;
 
-        public StripeConnectController(PaymentService paymentService, ApplicationDbContext dbContext)
+        public StripeConnectController(IStripeConnectService stripeConnectService, IUserService userService)
         {
-            _paymentService = paymentService;
-            _dbContext = dbContext;
+            _stripeConnectService = stripeConnectService;
+            _userService = userService;
         }
 
         // GET: /StripeConnect/Onboard
         public async Task<IActionResult> Onboard()
         {
-            string steamId = HttpContext.Session.GetString("SteamId");
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
-            if (user == null)
+            string currentUserSteamId = HttpContext.Session.GetString("SteamId")!;
+            var user = await _userService.GetUserBySteamIdAsync(currentUserSteamId);
+
+            var result = await _stripeConnectService.HandleOnboard(user);
+            if (!result.success)
             {
-                return RedirectToAction("SignIn", "Auth");
+                TempData["Error"] = result.errorMessage;
+                return RedirectToAction(result.redirectUrl, "Account");
             }
 
-            // Validate email address
-            if (string.IsNullOrEmpty(user.Email) || !user.Email.Contains("@"))
-            {
-                TempData["Error"] = "A valid email address is required to set up Stripe Connect. Please update your profile with a valid email address.";
-                return RedirectToAction("Profile", "Account");
-            }
-
-            // If user already has a Stripe Connect account, redirect to their dashboard
-            if (!string.IsNullOrEmpty(user.StripeConnectAccountId))
-            {
-                if (user.StripeConnectEnabled)
-                {
-                    return Redirect(user.StripeConnectDashboardLink);
-                }
-                else if (!string.IsNullOrEmpty(user.StripeConnectOnboardingLink))
-                {
-                    return Redirect(user.StripeConnectOnboardingLink);
-                }
-            }
-
-            try
-            {
-                // Create a new Stripe Connect account and get the onboarding link
-                string onboardingLink = await _paymentService.CreateStripeConnectAccountAsync(user);
-                return Redirect(onboardingLink);
-            }
-            catch (Exception ex)
-            {
-                TempData["Error"] = "There was an error setting up your Stripe Connect account. Please try again later.";
-                return RedirectToAction("Profile", "Account");
-            }
+            return Redirect(result.redirectUrl);
         }
 
         // GET: /StripeConnect/OnboardingComplete
         public async Task<IActionResult> OnboardingComplete()
         {
-            string steamId = HttpContext.Session.GetString("SteamId");
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
+            string currentUserSteamId = HttpContext.Session.GetString("SteamId")!;
+            var user = await _userService.GetUserBySteamIdAsync(currentUserSteamId);
             if (user == null || string.IsNullOrEmpty(user.StripeConnectAccountId))
             {
                 return RedirectToAction("Onboard");
             }
 
-            // Update the account status
-            await _paymentService.UpdateStripeConnectAccountStatusAsync(user.StripeConnectAccountId);
-
-            if (user.StripeConnectEnabled)
+            var result = await _stripeConnectService.HandleOnboardingComplete(user.StripeConnectAccountId);
+            if (result.success)
             {
-                TempData["Message"] = "Your Stripe Connect account has been successfully set up!";
+                TempData["Message"] = result.message;
                 return RedirectToAction("Profile", "Account");
             }
             else
             {
-                TempData["Error"] = "There was an issue setting up your Stripe Connect account. Please try again.";
+                TempData["Error"] = result.message;
                 return RedirectToAction("Onboard");
             }
         }
@@ -89,15 +62,14 @@ namespace CS2Marketplace.Controllers
         // GET: /StripeConnect/OnboardingRefresh
         public async Task<IActionResult> OnboardingRefresh()
         {
-            string steamId = HttpContext.Session.GetString("SteamId");
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
+            string currentUserSteamId = HttpContext.Session.GetString("SteamId")!;
+            var user = await _userService.GetUserBySteamIdAsync(currentUserSteamId);
             if (user == null || string.IsNullOrEmpty(user.StripeConnectAccountId))
             {
                 return RedirectToAction("Onboard");
             }
 
-            // Create a new onboarding link
-            string onboardingLink = await _paymentService.CreateStripeConnectAccountAsync(user);
+            string onboardingLink = await _stripeConnectService.CreateOnboardingRefreshLink(user);
             return Redirect(onboardingLink);
         }
     }

@@ -6,15 +6,16 @@ using CS2Marketplace.Data;
 using Microsoft.EntityFrameworkCore;
 using CS2Marketplace.Models;
 using CS2Marketplace.Filters;
+using CS2Marketplace.Services.Interfaces;
 
 namespace CS2Marketplace.Controllers
 {
     [RequireAuthentication]
     public class PaymentController : Controller
     {
-        private readonly PaymentService _paymentService;
+        private readonly IPaymentService _paymentService;
 
-        public PaymentController(PaymentService paymentService)
+        public PaymentController(IPaymentService paymentService)
         {
             _paymentService = paymentService;
         }
@@ -66,7 +67,7 @@ namespace CS2Marketplace.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateTestCharge(decimal amount)
         {
-            if (!_paymentService._isTestMode)
+            if (!_paymentService.IsTestMode)
                 return BadRequest("This endpoint is only available in test mode");
 
             var success = await _paymentService.CreateTestChargeForAvailableBalance(amount);

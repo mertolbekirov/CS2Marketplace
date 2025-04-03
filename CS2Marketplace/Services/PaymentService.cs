@@ -7,10 +7,11 @@ using CS2Marketplace.Data;
 using CS2Marketplace.Models;
 using Stripe;
 using Stripe.Checkout;
+using CS2Marketplace.Services.Interfaces;
 
 namespace CS2Marketplace.Services
 {
-    public class PaymentService
+    public class PaymentService : IPaymentService
     {
         private readonly IConfiguration _configuration;
         private readonly ApplicationDbContext _dbContext;
@@ -262,6 +263,8 @@ namespace CS2Marketplace.Services
                     Status = WalletTransactionStatus.Pending,
                     ReferenceId = transfer.Id
                 };
+
+                user.Balance -= amount;
                 
                 _dbContext.WalletTransactions.Add(transaction);
                 await _dbContext.SaveChangesAsync();

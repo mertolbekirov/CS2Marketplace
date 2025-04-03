@@ -5,18 +5,18 @@ using Stripe.Checkout;
 using CS2Marketplace.Data;
 using Microsoft.EntityFrameworkCore;
 using CS2Marketplace.Models;
+using CS2Marketplace.Filters;
 
 namespace CS2Marketplace.Controllers
 {
+    [RequireAuthentication]
     public class PaymentController : Controller
     {
         private readonly PaymentService _paymentService;
-        private readonly ApplicationDbContext _dbContext;
 
-        public PaymentController(PaymentService paymentService, ApplicationDbContext dbContext)
+        public PaymentController(PaymentService paymentService)
         {
             _paymentService = paymentService;
-            _dbContext = dbContext;
         }
 
         [HttpGet]
@@ -31,11 +31,7 @@ namespace CS2Marketplace.Controllers
         {
             // Retrieve the current user from your database (e.g., via session SteamId)
             string steamId = HttpContext.Session.GetString("SteamId");
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.SteamId == steamId);
-            if (user == null)
-            {
-                return RedirectToAction("SignIn", "Auth");
-            }
+
 
             Session session = await _paymentService.CreateDepositSessionAsync(user, amount);
             return Redirect(session.Url);

@@ -1,13 +1,14 @@
-﻿@model List<CS2Marketplace.Models.ViewModels.InventoryItem>
+﻿@model CS2Marketplace.Models.ViewModels.InventoryViewModel
+
 @{
-    ViewData["Title"] = ViewBag.IsOwnInventory ? "Your Inventory" : $"{ViewBag.TargetUsername}'s Inventory";
-    var activeListingIds = ViewBag.ActiveListingIds as List<string> ?? new List<string>();
+    ViewData["Title"] = Model.IsOwnInventory ? "Your Inventory" : $"{Model.TargetUsername}'s Inventory";
+    var activeListingIds = Model.ActiveListingIds ?? new List<string>();
 }
 
 <div class="container mt-4">
     <h2>@ViewData["Title"]</h2>
 
-    @if (ViewBag.IsOwnInventory && !ViewBag.HasApiKey)
+    @if (Model.IsOwnInventory && !Model.HasApiKey)
     {
         <div class="alert alert-warning">
             <h4 class="alert-heading">Steam API Key Required</h4>
@@ -28,7 +29,7 @@
         </div>
     }
 
-    @if (ViewBag.IsOwnInventory)
+    @if (Model.IsOwnInventory)
     {
         <!-- Force Refresh Button -->
         <a href="@Url.Action("LoadInventory", "Marketplace", new { force = true })" class="btn btn-secondary mb-3">
@@ -36,18 +37,14 @@
         </a>
     }
 
-    @if (Model == null)
-    {
-        <p>Unable to load inventory. Please try again later.</p>
-    }
-    else if (!Model.Any())
+    @if (Model.Items == null || !Model.Items.Any())
     {
         <p>No items found in the inventory.</p>
     }
     else
     {
         <div class="row">
-            @foreach (var item in Model)
+            @foreach (var item in Model.Items)
             {
                 bool isListed = activeListingIds.Contains(item.AssetId);
                 <div class="col-md-4 col-lg-3 mb-4">
@@ -66,8 +63,8 @@
                             {
                                 <p class="card-text">Pattern: @item.PatternIndex.Value</p>
                             }
-                            
-                            @if (ViewBag.IsOwnInventory)
+
+                            @if (Model.IsOwnInventory)
                             {
                                 if (isListed)
                                 {
@@ -75,7 +72,7 @@
                                         <i class="fas fa-check"></i> Listed for Sale
                                     </div>
                                 }
-                                else if (ViewBag.HasApiKey)
+                                else if (Model.HasApiKey)
                                 {
                                     <form asp-controller="Marketplace" asp-action="CreateListing" method="post">
                                         <input type="hidden" name="assetId" value="@item.AssetId" />

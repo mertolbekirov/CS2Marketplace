@@ -24,6 +24,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddTransient<SteamAuthService>();
 builder.Services.AddScoped<SteamApiService>();
 builder.Services.AddTransient<PaymentService>();
+builder.Services.AddTransient<IUserService,UserService>();
+builder.Services.AddTransient<IMarketplaceService,MarketplaceService>();
 
 builder.Services.AddHttpClient();
 

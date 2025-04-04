@@ -27,6 +27,7 @@ builder.Services.AddTransient<IPaymentService,PaymentService>();
 builder.Services.AddTransient<IUserService,UserService>();
 builder.Services.AddTransient<IMarketplaceService,MarketplaceService>();
 builder.Services.AddTransient<IStripeConnectService, StripeConnectService>();
+builder.Services.AddTransient<ITradeService, TradeService>();
 
 builder.Services.AddHttpClient();
 

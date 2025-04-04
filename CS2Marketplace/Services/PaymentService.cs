@@ -231,6 +231,18 @@ namespace CS2Marketplace.Services
         /// </summary>
         public async Task<(bool success, string errorMessage)> ProcessWithdrawalAsync(User user, decimal amount, string currency = "eur")
         {
+            if (user == null)
+                return (false, "User not found.");
+
+            if (amount <= 0)
+                return (false, "Withdrawal amount must be greater than 0.");
+
+            if (user.Balance < amount)
+                return (false, "Insufficient balance for withdrawal.");
+
+            if (string.IsNullOrEmpty(user.StripeConnectAccountId))
+                return (false, "You need to set up your Stripe account before making withdrawals.");
+
             if (string.IsNullOrEmpty(user.StripeConnectAccountId))
                 return (false, "User has no connected Stripe account.");
 

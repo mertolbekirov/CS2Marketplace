@@ -1,0 +1,67 @@
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<div class="container">
+    <h1>Admin Dashboard</h1>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    }
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Message"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Dispute Management</h5>
+                </div>
+                <div class="card-body">
+                    <p>Manage and resolve trade disputes between buyers and sellers.</p>
+                    <a asp-action="Disputes" class="btn btn-primary">View Disputes</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Expired Trades</h5>
+                </div>
+                <div class="card-body">
+                    <p>Process expired trades where buyers didn't respond in time.</p>
+                    <form asp-action="ProcessExpiredTrades" method="post">
+                        <button type="submit" class="btn btn-warning">Process Expired Trades</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>User Management</h5>
+                </div>
+                <div class="card-body">
+                    <p>Find and manage users, assign admin privileges.</p>
+                    <a asp-action="FindUser" class="btn btn-primary">Find User</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

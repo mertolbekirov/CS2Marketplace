@@ -3,44 +3,59 @@
     ViewData["Title"] = "Dispute Details";
 }
 
-<div class="container mt-4">
-    <h2>Dispute Details - Trade #@Model.Id</h2>
+<div class="container">
+    <h1>Dispute Details</h1>
+    
+    <div class="mb-4">
+        <a asp-action="Disputes" class="btn btn-secondary">Back to Disputes</a>
+    </div>
 
-    @if (TempData["Success"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Trade Information</h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <h6>Item Details</h6>
-                    <p><strong>Item:</strong> @Model.ItemName</p>
-                    @if (!string.IsNullOrEmpty(Model.ItemWear))
-                    {
-                        <p><strong>Float:</strong> @Model.ItemWear</p>
-                    }
-                    <p><strong>Price:</strong> $@Model.Amount.ToString("F2")</p>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Trade Information</h5>
                 </div>
-                <div class="col-md-6">
-                    <h6>Participants</h6>
-                    <p><strong>Seller:</strong> @Model.Seller.Username</p>
-                    <p><strong>Buyer:</strong> @Model.Buyer.Username</p>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Trade ID:</dt>
+                        <dd class="col-sm-8">@Model.Id</dd>
+
+                        <dt class="col-sm-4">Item:</dt>
+                        <dd class="col-sm-8">@Model.ItemName</dd>
+
+                        <dt class="col-sm-4">Amount:</dt>
+                        <dd class="col-sm-8">€@Model.Amount.ToString("N2")</dd>
+
+                        <dt class="col-sm-4">Created:</dt>
+                        <dd class="col-sm-8">@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+
+                        <dt class="col-sm-4">Disputed:</dt>
+                        <dd class="col-sm-8">@Model.DisputedAt?.ToString("yyyy-MM-dd HH:mm")</dd>
+
+                        <dt class="col-sm-4">Status:</dt>
+                        <dd class="col-sm-8">@Model.Status</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Dispute Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Reason:</dt>
+                        <dd class="col-sm-8">@(string.IsNullOrEmpty(Model.DisputeReason) ? "None provided" : Model.DisputeReason)</dd>
+
+                        <dt class="col-sm-4">Seller:</dt>
+                        <dd class="col-sm-8">@Model.Seller.Username (Steam ID: @Model.Seller.SteamId)</dd>
+
+                        <dt class="col-sm-4">Buyer:</dt>
+                        <dd class="col-sm-8">@Model.Buyer.Username (Steam ID: @Model.Buyer.SteamId)</dd>
+                    </dl>
                 </div>
             </div>
         </div>
@@ -48,49 +63,32 @@
 
     <div class="card mb-4">
         <div class="card-header">
-            <h5 class="mb-0">Dispute Information</h5>
-        </div>
-        <div class="card-body">
-            <p><strong>Reported On:</strong> @Model.DisputedAt?.ToString("g")</p>
-            <p><strong>Reason:</strong> @Model.DisputeReason</p>
-            @if (!string.IsNullOrEmpty(Model.AdminNotes))
-            {
-                <p><strong>Admin Notes:</strong> @Model.AdminNotes</p>
-            }
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Resolve Dispute</h5>
+            <h5>Resolve Dispute</h5>
         </div>
         <div class="card-body">
             <form asp-action="ResolveDispute" asp-route-id="@Model.Id" method="post">
-                <div class="mb-3">
+                <div class="form-group mb-3">
+                    <label for="resolution" class="form-label">Resolution:</label>
+                    <textarea name="resolution" id="resolution" class="form-control" rows="3" required></textarea>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="adminNotes" class="form-label">Admin Notes (Internal):</label>
+                    <textarea name="adminNotes" id="adminNotes" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="form-group mb-3">
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="refundBuyer" name="refundBuyer" value="true">
-                        <label class="form-check-label" for="refundBuyer">
-                            Refund the buyer
-                        </label>
+                        <input type="checkbox" class="form-check-input" id="refundBuyer" name="refundBuyer" value="true">
+                        <label class="form-check-label" for="refundBuyer">Refund buyer (if unchecked, funds will go to seller)</label>
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label for="resolution" class="form-label">Resolution Notes</label>
-                    <textarea class="form-control" id="resolution" name="resolution" rows="3" required></textarea>
-                    <div class="form-text">Explain how you resolved the dispute and why.</div>
+                <div class="alert alert-warning">
+                    <strong>Warning:</strong> This action cannot be undone. Make sure you've investigated the dispute thoroughly.
                 </div>
 
-                <div class="mb-3">
-                    <label for="adminNotes" class="form-label">Admin Notes</label>
-                    <textarea class="form-control" id="adminNotes" name="adminNotes" rows="3"></textarea>
-                    <div class="form-text">Internal notes about the dispute (not visible to users).</div>
-                </div>
-
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">Resolve Dispute</button>
-                    <a asp-action="Disputes" class="btn btn-secondary">Back to List</a>
-                </div>
+                <button type="submit" class="btn btn-danger">Resolve Dispute</button>
             </form>
         </div>
     </div>

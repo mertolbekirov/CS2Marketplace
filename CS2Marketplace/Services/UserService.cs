@@ -30,6 +30,13 @@ namespace CS2Marketplace.Services
                 .FirstOrDefaultAsync(u => u.SteamId == steamId);
         }
 
+        public async Task<User> GetUserDetailsByIdAsync(int id)
+        {
+            return await _dbContext.Users
+                .Include(u => u.WalletTransactions)
+                .FirstOrDefaultAsync(u => u.Id == id);
+        }
+
         public async Task UpdateUserEmailAsync(string steamId, string email)
         {
             var user = await GetUserBySteamIdAsync(steamId);

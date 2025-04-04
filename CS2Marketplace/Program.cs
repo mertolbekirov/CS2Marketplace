@@ -28,6 +28,7 @@ builder.Services.AddTransient<IUserService,UserService>();
 builder.Services.AddTransient<IMarketplaceService,MarketplaceService>();
 builder.Services.AddTransient<IStripeConnectService, StripeConnectService>();
 builder.Services.AddTransient<ITradeService, TradeService>();
+builder.Services.AddTransient<IAdminService, AdminService>();
 
 builder.Services.AddHttpClient();
 
@@ -64,6 +65,20 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     db.Database.Migrate();
+    
+    // Check if there are any admin users
+    if (!db.Users.Any(u => u.IsAdmin))
+    {
+        // Set the first user as admin (if any exist)
+        var firstUser = db.Users.FirstOrDefault();
+        if (firstUser != null)
+        {
+            firstUser.IsAdmin = true;
+            db.SaveChanges();
+            
+            Console.WriteLine($"User {firstUser.Username} (SteamID: {firstUser.SteamId}) has been made admin.");
+        }
+    }
 }
 
 app.Run();

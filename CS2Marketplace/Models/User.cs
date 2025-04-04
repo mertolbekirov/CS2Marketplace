@@ -26,6 +26,7 @@ namespace CS2Marketplace.Models
         public bool IsEligibleForTrading { get; set; }
         public DateTime? LastVerificationCheck { get; set; }
         public string? VerificationMessage { get; set; }
+        public bool IsAdmin { get; set; } = false;
 
         // Navigation properties
         public ICollection<MarketplaceListing> Listings { get; set; }

@@ -1,0 +1,50 @@
+@{
+    ViewData["Title"] = "Find User";
+}
+
+<div class="container">
+    <h1>Find User</h1>
+    
+    <div class="mb-4">
+        <a asp-action="Index" class="btn btn-secondary">Back to Admin Dashboard</a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Find User by Steam ID</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="FindUserBySteamId" method="post">
+                        <div class="form-group mb-3">
+                            <label for="steamId" class="form-label">Steam ID</label>
+                            <input type="text" class="form-control" id="steamId" name="steamId" placeholder="Enter Steam ID" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Find User</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Make a User Admin</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="MakeUserAdmin" method="post">
+                        <div class="form-group mb-3">
+                            <label for="steamIdAdmin" class="form-label">Steam ID</label>
+                            <input type="text" class="form-control" id="steamIdAdmin" name="steamId" placeholder="Enter Steam ID" required>
+                        </div>
+                        <div class="alert alert-warning">
+                            <strong>Warning:</strong> This will grant full admin privileges to the user.
+                        </div>
+                        <button type="submit" class="btn btn-danger">Make Admin</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

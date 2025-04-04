@@ -1,0 +1,115 @@
+@model CS2Marketplace.Models.User
+
+@{
+    ViewData["Title"] = "User Details";
+}
+
+<div class="container">
+    <h1>User Details</h1>
+    
+    <div class="mb-4">
+        <a asp-action="FindUser" class="btn btn-secondary">Back to Find User</a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>User Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3 text-center">
+                        <img src="@Model.AvatarUrl" alt="@Model.Username" class="rounded" style="width: 100px; height: 100px;">
+                    </div>
+                    <dl class="row">
+                        <dt class="col-sm-5">Username:</dt>
+                        <dd class="col-sm-7">@Model.Username</dd>
+
+                        <dt class="col-sm-5">Steam ID:</dt>
+                        <dd class="col-sm-7">@Model.SteamId</dd>
+
+                        <dt class="col-sm-5">Email:</dt>
+                        <dd class="col-sm-7">@(string.IsNullOrEmpty(Model.Email) ? "Not set" : Model.Email)</dd>
+
+                        <dt class="col-sm-5">Balance:</dt>
+                        <dd class="col-sm-7">€@Model.Balance.ToString("N2")</dd>
+
+                        <dt class="col-sm-5">Joined:</dt>
+                        <dd class="col-sm-7">@Model.CreatedAt.ToString("yyyy-MM-dd")</dd>
+
+                        <dt class="col-sm-5">Last Login:</dt>
+                        <dd class="col-sm-7">@Model.LastLogin.ToString("yyyy-MM-dd HH:mm")</dd>
+
+                        <dt class="col-sm-5">Admin:</dt>
+                        <dd class="col-sm-7">
+                            @if (Model.IsAdmin)
+                            {
+                                <span class="badge bg-success">Yes</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">No</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-5">Trading Eligible:</dt>
+                        <dd class="col-sm-7">
+                            @if (Model.IsEligibleForTrading)
+                            {
+                                <span class="badge bg-success">Yes</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">No</span>
+                            }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Wallet Transactions</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.WalletTransactions == null || !Model.WalletTransactions.Any())
+                    {
+                        <p>No transactions found.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Amount</th>
+                                        <th>Description</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var transaction in Model.WalletTransactions.OrderByDescending(t => t.CreatedAt))
+                                    {
+                                        <tr>
+                                            <td>@transaction.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                            <td>@transaction.Type</td>
+                                            <td class="@(transaction.Amount < 0 ? "text-danger" : "text-success")">
+                                                €@transaction.Amount.ToString("N2")
+                                            </td>
+                                            <td>@transaction.Description</td>
+                                            <td>@transaction.Status</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

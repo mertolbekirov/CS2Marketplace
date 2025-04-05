@@ -100,7 +100,9 @@ namespace CS2Marketplace.Services
                     Name = invItem.Name,
                     Description = string.Empty,
                     ImageUrl = invItem.ImageUrl,
-                    Rarity = string.Empty
+                    Rarity = string.Empty,
+                    FloatValue = invItem.FloatValue,
+                    PatternIndex = invItem.PatternIndex
                 };
                 _dbContext.Items.Add(item);
                 await _dbContext.SaveChangesAsync();
@@ -113,9 +115,7 @@ namespace CS2Marketplace.Services
                 UniqueAssetId = assetId,
                 Price = price,
                 ListingStatus = ListingStatus.Active,
-                ListedAt = DateTime.UtcNow,
-                FloatValue = invItem.FloatValue,
-                PatternIndex = invItem.PatternIndex
+                ListedAt = DateTime.UtcNow
             };
 
             _dbContext.MarketplaceListings.Add(listing);
@@ -157,9 +157,7 @@ namespace CS2Marketplace.Services
                 ListingId = listing.Id,
                 BuyerId = user.Id,
                 SellerId = listing.SellerId,
-                ItemId = listing.ItemId.ToString(),
-                ItemName = listing.Item.Name,
-                ItemWear = listing.FloatValue?.ToString("0.######"),
+                ItemId = listing.ItemId,
                 Amount = listing.Price,
                 Status = TradeStatus.WaitingForSeller,
                 StatusMessage = "Waiting for seller to send trade offer...",
@@ -174,7 +172,7 @@ namespace CS2Marketplace.Services
             {
                 UserId = user.Id,
                 Amount = -listing.Price,
-                Type = WalletTransactionType.Withdrawal,
+                Type = WalletTransactionType.Purchase,
                 Description = $"Purchase: {listing.Item.Name}",
                 CreatedAt = DateTime.UtcNow,
                 Status = WalletTransactionStatus.Completed,

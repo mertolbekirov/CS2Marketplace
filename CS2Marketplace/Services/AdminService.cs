@@ -25,6 +25,7 @@ namespace CS2Marketplace.Services
             return await _dbContext.Trades
                 .Include(t => t.Seller)
                 .Include(t => t.Buyer)
+                .Include(t => t.Item)
                 .Where(t => t.Status == TradeStatus.Disputed)
                 .OrderByDescending(t => t.DisputedAt)
                 .ToListAsync();
@@ -36,6 +37,7 @@ namespace CS2Marketplace.Services
                 .Include(t => t.Seller)
                 .Include(t => t.Buyer)
                 .Include(t => t.Listing)
+                .Include(t => t.Item)
                 .FirstOrDefaultAsync(t => t.Id == tradeId);
 
             if (trade == null || trade.Status != TradeStatus.Disputed)

@@ -29,9 +29,9 @@ namespace CS2Marketplace.Models
         public int ListingId { get; set; }
         public MarketplaceListing Listing { get; set; }
 
-        public string ItemId { get; set; }          // Steam item asset ID
-        public string ItemName { get; set; }        // Item name for display
-        public string? ItemWear { get; set; }       // Float value
+        public int ItemId { get; set; }
+        public Item Item { get; set; }
+
         public decimal Amount { get; set; }
         
         public string? TradeOfferId { get; set; }    // Steam trade offer ID

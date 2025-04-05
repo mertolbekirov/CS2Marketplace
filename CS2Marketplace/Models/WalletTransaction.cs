@@ -7,7 +7,8 @@ namespace CS2Marketplace.Models
         Deposit,
         Withdrawal,
         Sale,
-        Refund
+        Refund,
+        Purchase
     }
 
     public enum WalletTransactionStatus

@@ -28,7 +28,7 @@ else
             @foreach (var trade in Model)
             {
                 <tr>
-                    <td>@trade.ItemName</td>
+                    <td>@trade.Item.Name</td>
                     <td>
                         @if (trade.Seller.SteamId == currentUserSteamId)
                         {

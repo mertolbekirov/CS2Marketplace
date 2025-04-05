@@ -8,5 +8,7 @@
         public string Description { get; set; }
         public string ImageUrl { get; set; }
         public string Rarity { get; set; }  // or condition/quality
+        public float? FloatValue { get; set; }
+        public int? PatternIndex { get; set; }
     }
 }

@@ -38,8 +38,8 @@ else
                     <td>@listing.Seller.Username</td>
                     <td>@listing.Price.ToString("C")</td>
                     <td>@listing.ListedAt.ToString("g")</td>
-                    <td>@(listing.FloatValue.HasValue ? listing.FloatValue.Value.ToString("0.00") : "N/A")</td>
-                    <td>@(listing.PatternIndex.HasValue ? listing.PatternIndex.Value.ToString() : "N/A")</td>
+                    <td>@(listing.Item.FloatValue.HasValue ? listing.Item.FloatValue.Value.ToString("0.00") : "N/A")</td>
+                    <td>@(listing.Item.PatternIndex.HasValue ? listing.Item.PatternIndex.Value.ToString() : "N/A")</td>
                     <td>
                         @if (listing.Seller.SteamId == currentUserSteamId)
                         {

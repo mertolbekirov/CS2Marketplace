@@ -22,7 +22,7 @@
                         <dd class="col-sm-8">@Model.Id</dd>
 
                         <dt class="col-sm-4">Item:</dt>
-                        <dd class="col-sm-8">@Model.ItemName</dd>
+                        <dd class="col-sm-8">@Model.Item.Name</dd>
 
                         <dt class="col-sm-4">Amount:</dt>
                         <dd class="col-sm-8">€@Model.Amount.ToString("N2")</dd>
@@ -58,6 +58,18 @@
                     </dl>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <h6>Item Details</h6>
+            <p><strong>Item:</strong> @Model.Item.Name</p>
+            @if (Model.Item.FloatValue.HasValue)
+            {
+                <p><strong>Float:</strong> @Model.Item.FloatValue.Value.ToString("0.######")</p>
+            }
+            <p><strong>Price:</strong> $@Model.Amount.ToString("F2")</p>
         </div>
     </div>
 

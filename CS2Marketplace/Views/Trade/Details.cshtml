@@ -36,10 +36,10 @@
             <div class="row">
                 <div class="col-md-6">
                     <h6>Item Details</h6>
-                    <p><strong>Item:</strong> @Model.ItemName</p>
-                    @if (!string.IsNullOrEmpty(Model.ItemWear))
+                    <p><strong>Item:</strong> @Model.Item.Name</p>
+                    @if (Model.Item.FloatValue.HasValue)
                     {
-                        <p><strong>Float:</strong> @Model.ItemWear</p>
+                        <p><strong>Float:</strong> @Model.Item.FloatValue.Value.ToString("0.######")</p>
                     }
                     <p><strong>Price:</strong> $@Model.Amount.ToString("F2")</p>
                 </div>

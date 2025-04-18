@@ -10,5 +10,6 @@
         public string ImageUrl { get; set; }
         public float? FloatValue { get; set; }
         public int? PatternIndex { get; set; }
+        public string InspectLink { get; set; }  // Steam inspect link for the item
     }
 }

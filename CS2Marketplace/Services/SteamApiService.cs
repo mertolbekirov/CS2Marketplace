@@ -133,7 +133,8 @@ namespace CS2Marketplace.Services
                         Name = name,
                         ImageUrl = !string.IsNullOrEmpty(iconUrl)
                             ? "https://steamcommunity-a.akamaihd.net/economy/image/" + iconUrl
-                            : string.Empty
+                            : string.Empty,
+                        InspectLink = inspectLink
                     };
                     inventoryItems.Add(item);
 

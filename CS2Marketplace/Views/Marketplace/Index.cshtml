@@ -12,48 +12,58 @@
 }
 else
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Item</th>
-                <th>Seller</th>
-                <th>Price</th>
-                <th>Listed At</th>
-                <th>Float</th>
-                <th>Pattern Index</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var listing in Model)
-            {
-                <tr>
-                    <td>
-                        @if (!string.IsNullOrEmpty(listing.Item.ImageUrl))
+    <div class="row">
+        @foreach (var listing in Model)
+        {
+            <div class="col-md-4 col-lg-3 mb-4">
+                <div class="card h-100">
+                    @if (!string.IsNullOrEmpty(listing.Item.ImageUrl))
+                    {
+                        <img src="@listing.Item.ImageUrl" class="card-img-top" alt="@listing.Item.Name" style="height: 200px; object-fit: contain;">
+                    }
+                    <div class="card-body">
+                        <h5 class="card-title">@listing.Item.Name</h5>
+                        <p class="card-text">
+                            <strong>Seller:</strong> @listing.Seller.Username<br>
+                            <strong>Price:</strong> @listing.Price.ToString("C")<br>
+                            <strong>Listed:</strong> @listing.ListedAt.ToString("g")
+                        </p>
+                        
+                        @if (listing.Item.FloatValue.HasValue)
                         {
-                            <img src="@listing.Item.ImageUrl" alt="@listing.Item.Name" style="width:50px;" />
+                            <p class="card-text">
+                                <strong>Float:</strong> @listing.Item.FloatValue.Value.ToString("0.00000")
+                            </p>
                         }
-                        @listing.Item.Name
-                    </td>
-                    <td>@listing.Seller.Username</td>
-                    <td>@listing.Price.ToString("C")</td>
-                    <td>@listing.ListedAt.ToString("g")</td>
-                    <td>@(listing.Item.FloatValue.HasValue ? listing.Item.FloatValue.Value.ToString("0.00") : "N/A")</td>
-                    <td>@(listing.Item.PatternIndex.HasValue ? listing.Item.PatternIndex.Value.ToString() : "N/A")</td>
-                    <td>
-                        @if (listing.Seller.SteamId == currentUserSteamId)
+                        
+                        @if (listing.Item.PatternIndex.HasValue)
                         {
-                            <span class="text-muted">Your listing</span>
+                            <p class="card-text">
+                                <strong>Pattern:</strong> @listing.Item.PatternIndex.Value
+                            </p>
                         }
-                        else
-                        {
-                            <form asp-action="Purchase" asp-route-id="@listing.Id" method="post" style="display: inline;">
-                                <button type="submit" class="btn btn-primary btn-sm">Buy</button>
-                            </form>
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+
+                        <div class="d-flex gap-2">
+                            @if (!string.IsNullOrEmpty(listing.Item.InspectLink))
+                            {
+                                <a href="@listing.Item.InspectLink" target="_blank" class="btn btn-info">
+                                    <i class="fas fa-search"></i> Inspect
+                                </a>
+                            }
+                            
+                            @if (currentUserSteamId != listing.Seller.SteamId)
+                            {
+                                <form asp-controller="Marketplace" asp-action="Purchase" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@listing.Id" />
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-shopping-cart"></i> Buy
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
 }

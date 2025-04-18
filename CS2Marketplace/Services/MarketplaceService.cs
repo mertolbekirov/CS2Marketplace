@@ -102,7 +102,8 @@ namespace CS2Marketplace.Services
                     ImageUrl = invItem.ImageUrl,
                     Rarity = string.Empty,
                     FloatValue = invItem.FloatValue,
-                    PatternIndex = invItem.PatternIndex
+                    PatternIndex = invItem.PatternIndex,
+                    InspectLink = invItem.InspectLink
                 };
                 _dbContext.Items.Add(item);
                 await _dbContext.SaveChangesAsync();

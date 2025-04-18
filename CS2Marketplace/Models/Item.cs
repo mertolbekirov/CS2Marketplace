@@ -10,5 +10,6 @@
         public string Rarity { get; set; }  // or condition/quality
         public float? FloatValue { get; set; }
         public int? PatternIndex { get; set; }
+        public string InspectLink { get; set; }  // Steam inspect link for the item
     }
 }
